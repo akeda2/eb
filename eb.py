@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import sys
 
 class Editor:
@@ -27,6 +28,10 @@ class Editor:
                 self.insert_line()
             elif command == 'h':
                 self.print_help()
+            elif command == 'x':
+                quit_not_save = input("Really quit without saving? ") or 'n'
+                if quit_not_save == 'y':
+                    break
             else:
                 print('Unknown command')
 
@@ -80,6 +85,7 @@ class Editor:
         print('i - insert a line into the buffer')
         print('h - print this help message')
         print('q - quit the editor and save changes to file')
+        print('x - eXit the editor without saving changes')
 
     def save_buffer(self):
         if self.filename is None:
