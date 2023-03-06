@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 import sys
 #import re
+import curses
+import time
+from curses import wrapper
+
 
 class Editor:
     def __init__(self, filename=None):
@@ -29,6 +33,9 @@ class Editor:
                     self.delete_lines(command[1:])
                 elif command.startswith('s'):
                     self.substitute_lines(command[1:])
+                elif command.startswith('e'):
+                    #wrapper(self.modify_line(int(command[1:]))) if command[1:] != '' else wrapper(self.modify_line(int(input("Line number: "))))
+                    self.modify_line(int(command[1:])) if command[1:] != '' else self.modify_line(int(input("Line number: ")))
                 elif command.startswith('i'):
                     self.insert_line(int(command[1:])) if command[1:] != '' else self.insert_line(0)
                 elif command.startswith('m'):
@@ -39,6 +46,8 @@ class Editor:
                     self.print_context(int(command[1:])) if command[1:] != '' else self.print_context(0)
                 elif command == 'h':
                     self.print_help()
+                elif command == 'qq':
+                    break
                 elif command == 'q':
                     quit_not_save = input("Really quit without saving? (x in main menu eXits and saves) y/n: ") or 'n'
                     if quit_not_save == 'y':
@@ -47,7 +56,8 @@ class Editor:
                     print('Unknown command')
             except:
                 print("FAIL!")
-                pass
+                #pass
+                raise
 
     def print_buffer(self):
         for i, line in enumerate(self.buffer, start=1):
@@ -103,16 +113,18 @@ class Editor:
 
     def print_help(self):
         print('Available commands:')
-        print('p - print the buffer with line numbers')
-        print('m - print the buffer one page at the time (more-style)')
-        print('c - print near Context of a line number')
-        print('a - append one or more lines to the buffer')
-        print('d - delete a line from the buffer')
-        print('s - substitute a line in the buffer')
-        print('i - insert a line into the buffer')
-        print('h - print this help message')
-        print('q - quit the editor without saving changes')
-        print('x - eXit the editor saving changes to file')
+        print('p  - print the buffer with line numbers')
+        print('m  - print the buffer one page at the time (more-style)')
+        print('c  - print near Context of a line number')
+        print('a  - append one or more lines to the buffer')
+        print('d  - delete a line from the buffer')
+        print('s  - substitute a line in the buffer')
+        print('e  - edit a line in the buffer')
+        print('i  - insert a line into the buffer')
+        print('h  - print this help message')
+        print('q  - quit the editor without saving changes')
+        print('qq - force quit without saving changes')
+        print('x  - eXit the editor saving changes to file')
 
     def print_more(self):
         page_size = 20
@@ -146,7 +158,67 @@ class Editor:
         for i in range(start, end):
             print(f"{i+1}:{self.buffer[i]}")
 
+    def print_line(self, line_num):
+        print(f"{line_num}:{self.buffer[line_num]}")
 
+    """def modify_line(self, line_num, new_line):
+        self.buffer[line_num] = new_line"""
+    
+    """def modify_line(self, line_num):
+        print(f"{line_num}:{self.buffer[line_num]}")
+        new_line = input("New line: {}".format(self.buffer[line_num]))
+        self.buffer[line_num] = new_line"""
+    def modify_line(self, line_num):
+        #print(f"{line_num}:{self.buffer[line_num]}")
+        line_num -= 1
+        stdscr = curses.initscr()
+        #curses.resizeterm(24, 80)
+        curses.noecho()
+        curses.cbreak()
+        stdscr.keypad(True)
+        stdscr.clear()
+        stringtoedit = self.buffer[line_num].strip()
+        stdscr.addstr("Edit the following line and press Ctrl-G to save:\n\n")
+        editwin = curses.newwin(1, 80, 2, 0)
+        editwin.addstr(0, 0, stringtoedit)
+        stdscr.refresh()
+        editwin.refresh()
+        curses.curs_set(1)
+        
+        while True:
+            ch = stdscr.getch()
+            if ch == 7:  # Ctrl-G (ASCII bell character)
+                new_line = editwin.instr(0, 0).decode().strip()
+                break
+            elif ch == curses.KEY_BACKSPACE:
+                #editwin.delch()
+                stringtoedit = stringtoedit[:-1]
+            elif ch == curses.KEY_LEFT:
+                editwin.move(0, editwin.getyx()[1] - 1)
+            elif ch == curses.KEY_RIGHT:
+                editwin.move(0, editwin.getyx()[1] + 1)
+            
+
+            else:
+                editwin.addch(ch)
+                stringtoedit += chr(ch)
+            #self.buffer[line_num] = stringtoedit #+ '\n'
+            editwin.clear()
+            editwin.addstr(0, 0, stringtoedit)
+            editwin.refresh()
+    
+        self.buffer[line_num] = new_line #+ '\n'
+        
+
+        stdscr.refresh()
+        curses.curs_set(0)
+        curses.nocbreak()
+        stdscr.keypad(False)
+        curses.echo()
+        curses.endwin()
+
+        #new_line = input("New line: ")
+        #self.buffer[line_num] = new_line
 
     def save_buffer(self):
         if self.filename is None:
