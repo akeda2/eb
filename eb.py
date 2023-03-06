@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+﻿#!/usr/bin/python3
 import sys
 
 class Editor:
@@ -10,7 +10,7 @@ class Editor:
                 self.buffer = f.read().splitlines()
 
     def run(self):
-        print("Welcome to the ed-like line editor! Enter commands or 'q' to quit.")
+        print("EB - a primitive line-editor. Enter commands or 'q' to quit.")
         while True:
             command = input('?')
             try:
