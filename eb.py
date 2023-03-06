@@ -1,5 +1,6 @@
-﻿#!/usr/bin/python3
+#!/usr/bin/env python3
 import sys
+#import re
 
 class Editor:
     def __init__(self, filename=None):
