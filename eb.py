@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 import sys
 #import re
 
@@ -11,11 +11,11 @@ class Editor:
                 self.buffer = f.read().splitlines()
 
     def run(self):
-        print("EB - a primitive line-editor. Enter commands or 'q' to quit.")
+        print("eb - a primitive line-ebitor. Enter commands or 'q' to quit.")
         while True:
             command = input('?')
             try:
-                if command == 'q':
+                if command == 'x':
                     try:
                         self.save_buffer()
                         break
@@ -39,8 +39,8 @@ class Editor:
                     self.print_context(int(command[1:])) if command[1:] != '' else self.print_context(0)
                 elif command == 'h':
                     self.print_help()
-                elif command == 'x':
-                    quit_not_save = input("Really quit without saving? ") or 'n'
+                elif command == 'q':
+                    quit_not_save = input("Really quit without saving? (x in main menu eXits and saves) y/n") or 'n'
                     if quit_not_save == 'y':
                         break
                 else:
@@ -111,8 +111,8 @@ class Editor:
         print('s - substitute a line in the buffer')
         print('i - insert a line into the buffer')
         print('h - print this help message')
-        print('q - quit the editor and save changes to file')
-        print('x - eXit the editor without saving changes')
+        print('q - quit the editor without saving changes')
+        print('x - eXit the editor saving changes to file')
 
     def print_more(self):
         page_size = 20
