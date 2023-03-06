@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 import sys
 #import re
 
@@ -40,7 +40,7 @@ class Editor:
                 elif command == 'h':
                     self.print_help()
                 elif command == 'q':
-                    quit_not_save = input("Really quit without saving? (x in main menu eXits and saves) y/n") or 'n'
+                    quit_not_save = input("Really quit without saving? (x in main menu eXits and saves) y/n: ") or 'n'
                     if quit_not_save == 'y':
                         break
                 else:
@@ -152,7 +152,7 @@ class Editor:
         if self.filename is None:
             self.filename = input('Enter filename to save buffer: ')
         try:
-            with open(self.filename, 'w', encoding='utf-8-sig') as f:
+            with open(self.filename, 'w') as f:
                 f.write('\n'.join(self.buffer))
             print("File saved")
         except:
