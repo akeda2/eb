@@ -14,8 +14,11 @@ class Editor:
         while True:
             command = input('?')
             if command == 'q':
-                self.save_buffer()
-                break
+                try:
+                    self.save_buffer()
+                    break
+                except:
+                    print("Save failed!")
             elif command == 'p':
                 self.print_buffer()
             elif command.startswith('a'):
@@ -90,8 +93,12 @@ class Editor:
     def save_buffer(self):
         if self.filename is None:
             self.filename = input('Enter filename to save buffer: ')
-        with open(self.filename, 'w') as f:
-            f.write('\n'.join(self.buffer))
+        try:
+            with open(self.filename, 'w') as f:
+                f.write('\n'.join(self.buffer))
+            print("File saved")
+        except:
+            print("Could not save!")
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
