@@ -36,6 +36,21 @@ class Editor:
                 elif command.startswith('e'):
                     #wrapper(self.modify_line(int(command[1:]))) if command[1:] != '' else wrapper(self.modify_line(int(input("Line number: "))))
                     self.modify_line(int(command[1:])) if command[1:] != '' else self.modify_line(int(input("Line number: ")))
+                elif command.startswith('k'):
+                    line_num, _, comment_char = command.partition(' ')[2].partition(' ')
+                    if not comment_char:
+                        comment_char = '#'  # Set a default comment character if none is provided
+                    if not line_num:
+                        line_num = input("Line number: ")
+                    self.comment_line(int(line_num)-1, comment_char)
+                    #self.comment_line(int(command[1:]) if command[1:] != '' else int(input("Line number: ")), command[2:] if command[2:] != '' else '#')
+                elif command.startswith('u'):
+                    line_num, _, comment_char = command.partition(' ')[2].partition(' ')
+                    if not comment_char:
+                        comment_char = '#'  # Set a default comment character if none is provided
+                    if not line_num:
+                        line_num = input("Line number: ")
+                    self.uncomment_line(int(line_num)-1, comment_char)
                 elif command.startswith('i'):
                     self.insert_line(int(command[1:])) if command[1:] != '' else self.insert_line(0)
                 elif command.startswith('m'):
@@ -116,10 +131,13 @@ class Editor:
         print('p  - print the buffer with line numbers')
         print('m  - print the buffer one page at the time (more-style)')
         print('c  - print near Context of a line number')
+        print('t  - print the last n lines of the buffer (tail-style)')
         print('a  - append one or more lines to the buffer')
         print('d  - delete a line from the buffer')
         print('s  - substitute a line in the buffer')
         print('e  - edit a line in the buffer')
+        print('k  - comment out a line in the buffer')
+        print('u  - uncomment a line in the buffer')
         print('i  - insert a line into the buffer')
         print('h  - print this help message')
         print('q  - quit the editor without saving changes')
@@ -219,6 +237,11 @@ class Editor:
 
         #new_line = input("New line: ")
         #self.buffer[line_num] = new_line
+    def comment_line(self, line_num, comment_char='#'):
+        self.buffer[line_num] = comment_char + self.buffer[line_num]
+    def uncomment_line(self, line_num, comment_char='#'):
+        if self.buffer[line_num].startswith(comment_char):
+            self.buffer[line_num] = self.buffer[line_num][1:]
 
     def save_buffer(self):
         if self.filename is None:
