@@ -1,21 +1,28 @@
 #!/usr/bin/env python3
 import sys
-#import re
 import curses
-import time
-from curses import wrapper
+import os
+#from curses import wrapper
 
 
 class Editor:
     def __init__(self, filename=None):
         self.buffer = []
         self.filename = filename
-        if self.filename is not None:
+        if self.filename is not None and os.path.isfile(self.filename):
             with open(self.filename) as f:
                 self.buffer = f.read().splitlines()
+        else:
+            newfile = input("File not found! Create new file? [y/n]: ") or 'n'
+            if newfile == 'y':
+                self.filename = input("Enter filename (" + self.filename + "): ") or self.filename
+                with open(self.filename, 'w') as f:
+                    pass
+            else:
+                sys.exit()
 
     def run(self):
-        print("eb - a primitive line-ebitor. Enter commands or 'q' to quit.")
+        print("eb - a primitive line-ebitor. 'h' is help, 'q' is quit.")
         while True:
             command = input('?')
             try:
@@ -58,7 +65,13 @@ class Editor:
                 elif command.startswith('t'):
                     self.print_tail(int(command[1:])) if command[1:] != '' else self.print_tail()
                 elif command.startswith('c'):
-                    self.print_context(int(command[1:])) if command[1:] != '' else self.print_context(0)
+                    line_num, _, context_num = command.partition(' ')[2].partition(' ')
+                    if not context_num:
+                        context_num = 5  # Set a default context number if none is provided
+                    if not line_num:
+                        line_num = input("Line number: ")
+                    self.print_context(int(line_num)-1, int(context_num))
+                    #self.print_context(int(command[1:])) if command[1:] != '' else self.print_context(0)
                 elif command == 'h':
                     self.print_help()
                 elif command == 'qq':
@@ -171,8 +184,8 @@ class Editor:
     def print_context(self,line_num,plusminus=5):
         if line_num == 0 or line_num == '':
             line_num = int(input("Line number: "))
-        start = max(0, line_num - 5)
-        end = min(len(self.buffer), line_num + 5)
+        start = max(0, line_num - plusminus)
+        end = min(len(self.buffer), line_num + plusminus)
         for i in range(start, end):
             print(f"{i+1}:{self.buffer[i]}")
 
@@ -256,7 +269,7 @@ class Editor:
 if __name__ == '__main__':
     if len(sys.argv) > 1:
         filename = sys.argv[1]
-        editor = Editor(filename)
+        editor = Editor(filename) #if os.path.exists(filename) else Editor()
     else:
         editor = Editor()
     editor.run()
