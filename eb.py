@@ -15,7 +15,10 @@ class Editor:
         else:
             newfile = input("File not found! Create new file? [y/n]: ") or 'n'
             if newfile == 'y':
-                self.filename = input("Enter filename (" + self.filename + "): ") or self.filename
+                if self.filename is not None:
+                    self.filename = input("Enter filename (" + self.filename + "): ") or self.filename
+                else:
+                    self.filename = input("Enter filename: ")
                 with open(self.filename, 'w') as f:
                     pass
             else:
