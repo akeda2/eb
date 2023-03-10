@@ -25,7 +25,8 @@ class Editor:
                 sys.exit()
 
     def run(self):
-        print("eb - a primitive line-ebitor. 'h' is help, 'q' is quit.")
+        print(f"eb - a primitive line-ebitor. 'h' is help, 'q' is quit. Python version: {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
+        self.old_version = True if sys.version_info.major == 3 and sys.version_info.minor < 6 or sys.version_info.major > 3 else False
         while True:
             command = input('?')
             try:
@@ -92,14 +93,10 @@ class Editor:
 
     def print_buffer(self):
         for i, line in enumerate(self.buffer, start=1):
-            # Try printing with f-strings, if that fails, print the same line, but make it compatible with old python versions
-            # Avoid syntax errors:
-            #try:
-            print(f"{i:3d}  {line}")
-            #except:
-                #Print the same line, but make it compatible with old python versions
-            #print('{i:3d} + "  " + {}').format(i, line)
-                #print(str(i) + "  " + line)
+            if self.old_version:
+                print('{i:3d} + "  " + {}').format(i, line)
+            else:
+                print(f"{i:3d}  {line}")
 
     def append_lines(self,arg):
         if len(self.buffer) == 0:
@@ -174,13 +171,19 @@ class Editor:
         while True:
             for i in range(start, end):
                 if i < len(self.buffer):
-                    #print('{i + 1:3d} + "  "  {self.buffer[i]}').format(i=i)
-                    print(f"{i + 1:3d}  {self.buffer[i]}")
+                    if self.old_version:
+                        print('{i + 1:3d} + "  "  {self.buffer[i]}').format(i=i)
+                    else:
+                        print(f"{i + 1:3d}  {self.buffer[i]}")
                 else:
                     break
             if end >= len(self.buffer):
                 break
-            prompt = f"More ({end + 1}-{min(end + page_size, len(self.buffer))})? "
+            if self.old_version:
+                # Use a non f-string string to make it compatible with old python versions
+                prompt = '{f"More ({end + 1}-{min(end + page_size, len(self.buffer))})? "}'.format(end=end, page_size=page_size)
+            else:
+                prompt = f"More ({end + 1}-{min(end + page_size, len(self.buffer))})? "
             command = input(prompt)
             if command == 'q':
                 break
@@ -190,7 +193,10 @@ class Editor:
     def print_tail(self,n=10):
         start = max(0, len(self.buffer) - n)
         for i in range(start, len(self.buffer)):
-            print(f"{i+1}:{self.buffer[i]}")
+            if self.old_version:
+                print('{i + 1:3d} + "  "  {self.buffer[i]}').format(i=i)
+            else:
+                print(f"{i+1:3d}  {self.buffer[i]}")
 
     def print_context(self,line_num,plusminus=5):
         if line_num == 0 or line_num == '':
@@ -198,10 +204,16 @@ class Editor:
         start = max(0, line_num - plusminus)
         end = min(len(self.buffer), line_num + plusminus)
         for i in range(start, end):
-            print(f"{i+1}:{self.buffer[i]}")
+            if self.old_version:
+                print('{i + 1:3d} + "  "  {self.buffer[i]}').format(i=i)
+            else:
+                print(f"{i+1:3d}  {self.buffer[i]}")
 
     def print_line(self, line_num):
-        print(f"{line_num}:{self.buffer[line_num]}")
+        if self.old_version:
+            print('{line_num:3d} + "  "  {self.buffer[line_num - 1]}').format(line_num=line_num)
+        else:
+            print(f"{line_num}:{self.buffer[line_num]}")
 
     """def modify_line(self, line_num, new_line):
         self.buffer[line_num] = new_line"""
