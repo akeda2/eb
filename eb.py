@@ -94,11 +94,11 @@ class Editor:
         for i, line in enumerate(self.buffer, start=1):
             # Try printing with f-strings, if that fails, print the same line, but make it compatible with old python versions
             # Avoid syntax errors:
-            try:
+            """try:
                 print(f"{i:3d}  {line}")
-            except:
+            except:"""
                 #Print the same line, but make it compatible with old python versions
-                print('{i:3d} + "  " + {}').format(i, line)
+            print('{i:3d} + "  " + {}').format(i, line)
                 #print(str(i) + "  " + line)
 
     def append_lines(self,arg):
