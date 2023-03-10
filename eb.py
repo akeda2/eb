@@ -25,8 +25,10 @@ class Editor:
                 sys.exit()
 
     def run(self):
-        print(f"eb - a primitive line-ebitor. 'h' is help, 'q' is quit. Python version: {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
+        print("eb - a primitive line-ebitor. 'h' is help, 'q' is quit. Python version: {0}.{1}.{2}".format(sys.version_info.major, sys.version_info.minor, sys.version_info.micro))
+        #print(f"eb - a primitive line-ebitor. 'h' is help, 'q' is quit. Python version: {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
         self.old_version = True if sys.version_info.major == 3 and sys.version_info.minor < 6 or sys.version_info.major > 3 else False
+        #self.old_version = True
         while True:
             command = input('?')
             try:
@@ -94,7 +96,7 @@ class Editor:
     def print_buffer(self):
         for i, line in enumerate(self.buffer, start=1):
             if self.old_version:
-                print('{i:3d} + "  " + {}').format(i, line)
+                print('{i:3d}  {line}'.format(i=i, line=line))
             else:
                 print(f"{i:3d}  {line}")
 
@@ -172,7 +174,7 @@ class Editor:
             for i in range(start, end):
                 if i < len(self.buffer):
                     if self.old_version:
-                        print('{i + 1:3d} + "  "  {self.buffer[i]}').format(i=i)
+                        print('{i:3d}  {buffer}'.format(i=i +1, buffer=self.buffer[i]))
                     else:
                         print(f"{i + 1:3d}  {self.buffer[i]}")
                 else:
@@ -180,8 +182,8 @@ class Editor:
             if end >= len(self.buffer):
                 break
             if self.old_version:
-                # Use a non f-string string to make it compatible with old python versions
-                prompt = '{f"More ({end + 1}-{min(end + page_size, len(self.buffer))})? "}'.format(end=end, page_size=page_size)
+                # Use a non f-string to make it compatible with old python versions
+                prompt = 'More ({end}-{page_size})?'.format(end=end+1, page_size=min(end + page_size, len(self.buffer)))
             else:
                 prompt = f"More ({end + 1}-{min(end + page_size, len(self.buffer))})? "
             command = input(prompt)
@@ -194,7 +196,7 @@ class Editor:
         start = max(0, len(self.buffer) - n)
         for i in range(start, len(self.buffer)):
             if self.old_version:
-                print('{i + 1:3d} + "  "  {self.buffer[i]}').format(i=i)
+                print('{i:3d}  {buffer}'.format(i=i+1, buffer=self.buffer[i]))
             else:
                 print(f"{i+1:3d}  {self.buffer[i]}")
 
@@ -205,13 +207,13 @@ class Editor:
         end = min(len(self.buffer), line_num + plusminus)
         for i in range(start, end):
             if self.old_version:
-                print('{i + 1:3d} + "  "  {self.buffer[i]}').format(i=i)
+                print('{i:3d}  {buffer}'.format(i=i+1, buffer=self.buffer[i]))
             else:
                 print(f"{i+1:3d}  {self.buffer[i]}")
 
     def print_line(self, line_num):
         if self.old_version:
-            print('{line_num:3d} + "  "  {self.buffer[line_num - 1]}').format(line_num=line_num)
+            print('{line_num:3d}  {buffer}'.format(line_num=line_num, buffer=self.buffer[line_num - 1]))
         else:
             print(f"{line_num}:{self.buffer[line_num]}")
 
