@@ -95,11 +95,11 @@ class Editor:
             # Try printing with f-strings, if that fails, print the same line, but make it compatible with old python versions
             # Avoid syntax errors:
             try:
-                print('{i:3d} + "  " + {}').format(i, line)
-                #print(f"{i:3d}  {line}")
+                print(f"{i:3d}  {line}")
             except:
                 #Print the same line, but make it compatible with old python versions
-                print(str(i) + "  " + line)
+                print('{i:3d} + "  " + {}').format(i, line)
+                #print(str(i) + "  " + line)
 
     def append_lines(self,arg):
         if len(self.buffer) == 0:
