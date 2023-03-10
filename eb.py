@@ -92,8 +92,11 @@ class Editor:
 
     def print_buffer(self):
         for i, line in enumerate(self.buffer, start=1):
+            # Try printing with f-strings, if that fails, print the same line, but make it compatible with old python versions
+            # Avoid syntax errors:
             try:
-                print(f"{i:3d}  {line}")
+                print('{i:3d} + "  " + {}').format(i, line)
+                #print(f"{i:3d}  {line}")
             except:
                 #Print the same line, but make it compatible with old python versions
                 print(str(i) + "  " + line)
