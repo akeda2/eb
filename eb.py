@@ -95,10 +95,10 @@ class Editor:
 
     def print_buffer(self):
         for i, line in enumerate(self.buffer, start=1):
-            if self.old_version:
-                print('{i:3d}  {line}'.format(i=i, line=line))
-            else:
-                print(f"{i:3d}  {line}")
+            #if self.old_version:
+            print('{i:3d}  {line}'.format(i=i, line=line))
+            #else:
+            #    print(f"{i:3d}  {line}")
 
     def append_lines(self,arg):
         if len(self.buffer) == 0:
@@ -173,19 +173,19 @@ class Editor:
         while True:
             for i in range(start, end):
                 if i < len(self.buffer):
-                    if self.old_version:
-                        print('{i:3d}  {buffer}'.format(i=i +1, buffer=self.buffer[i]))
-                    else:
-                        print(f"{i + 1:3d}  {self.buffer[i]}")
+                    #if self.old_version:
+                    print('{i:3d}  {buffer}'.format(i=i +1, buffer=self.buffer[i]))
+                    #else:
+                    #    print(f"{i + 1:3d}  {self.buffer[i]}")
                 else:
                     break
             if end >= len(self.buffer):
                 break
-            if self.old_version:
+            #if self.old_version:
                 # Use a non f-string to make it compatible with old python versions
-                prompt = 'More ({end}-{page_size})?'.format(end=end+1, page_size=min(end + page_size, len(self.buffer)))
-            else:
-                prompt = f"More ({end + 1}-{min(end + page_size, len(self.buffer))})? "
+            prompt = 'More ({end}-{page_size})?'.format(end=end+1, page_size=min(end + page_size, len(self.buffer)))
+            #else:
+            #    prompt = f"More ({end + 1}-{min(end + page_size, len(self.buffer))})? "
             command = input(prompt)
             if command == 'q':
                 break
@@ -195,10 +195,10 @@ class Editor:
     def print_tail(self,n=10):
         start = max(0, len(self.buffer) - n)
         for i in range(start, len(self.buffer)):
-            if self.old_version:
-                print('{i:3d}  {buffer}'.format(i=i+1, buffer=self.buffer[i]))
-            else:
-                print(f"{i+1:3d}  {self.buffer[i]}")
+            #if self.old_version:
+            print('{i:3d}  {buffer}'.format(i=i+1, buffer=self.buffer[i]))
+            #else:
+            #    print(f"{i+1:3d}  {self.buffer[i]}")
 
     def print_context(self,line_num,plusminus=5):
         if line_num == 0 or line_num == '':
@@ -206,16 +206,16 @@ class Editor:
         start = max(0, line_num - plusminus)
         end = min(len(self.buffer), line_num + plusminus)
         for i in range(start, end):
-            if self.old_version:
-                print('{i:3d}  {buffer}'.format(i=i+1, buffer=self.buffer[i]))
-            else:
-                print(f"{i+1:3d}  {self.buffer[i]}")
+            #if self.old_version:
+            print('{i:3d}  {buffer}'.format(i=i+1, buffer=self.buffer[i]))
+            #else:
+            #    print(f"{i+1:3d}  {self.buffer[i]}")
 
     def print_line(self, line_num):
-        if self.old_version:
-            print('{line_num:3d}  {buffer}'.format(line_num=line_num, buffer=self.buffer[line_num - 1]))
-        else:
-            print(f"{line_num}:{self.buffer[line_num]}")
+        #if self.old_version:
+        print('{line_num:3d}  {buffer}'.format(line_num=line_num, buffer=self.buffer[line_num - 1]))
+        #else:
+        #    print(f"{line_num}:{self.buffer[line_num]}")
 
     """def modify_line(self, line_num, new_line):
         self.buffer[line_num] = new_line"""
