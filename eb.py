@@ -92,7 +92,11 @@ class Editor:
 
     def print_buffer(self):
         for i, line in enumerate(self.buffer, start=1):
-            print(f"{i:3d}  {line}")
+            try:
+                print(f"{i:3d}  {line}")
+            except:
+                #Print the same line, but make it compatible with old python versions
+                print(str(i) + "  " + line)
 
     def append_lines(self,arg):
         if len(self.buffer) == 0:
