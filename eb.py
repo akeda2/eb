@@ -174,7 +174,8 @@ class Editor:
         while True:
             for i in range(start, end):
                 if i < len(self.buffer):
-                    print(f"{i + 1:3d}  {self.buffer[i]}")
+                    print('{i + 1:3d} + "  "  {self.buffer[i]}').format(i=i)
+                    #print(f"{i + 1:3d}  {self.buffer[i]}")
                 else:
                     break
             if end >= len(self.buffer):
