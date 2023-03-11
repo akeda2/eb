@@ -39,6 +39,8 @@ class Editor:
                             break
                     except:
                         print("Save failed!")
+                elif command.startswith('S'):
+                    self.split_from_line_to_new_file(int(command[1:])) if command[1:] != '' else self.split_from_line_to_new_file(int(input("Line number: ")))
                 elif command == 'b':
                     self.add_bom()
                 elif command == 'B':
@@ -168,6 +170,7 @@ class Editor:
         print('i  - insert a line into the buffer')
         print('b  - Add Unicode BOM to the beginning of the file')
         print('B  - Remove Unicode BOM from the beginning of the file')
+        print('S  - Split from line number to end of file into a new file')
         print('h  - print this help message')
         print('q  - quit the editor without saving changes')
         print('qq - force quit without saving changes')
@@ -302,6 +305,24 @@ class Editor:
     def uncomment_line(self, line_num, comment_char='#'):
         if self.buffer[line_num].startswith(comment_char):
             self.buffer[line_num] = self.buffer[line_num][1:]
+    def split_from_line_to_new_file(self, line_num):
+        line_num -= 1
+        new_filename = input("Enter new filename: ")
+        new_buffer = self.buffer[line_num:]
+        self.buffer = self.buffer[:line_num]
+        if os.path.isfile(new_filename):
+            overwrite = input("File already exists! Overwrite? (y/N): ") or 'n'
+        else:
+            overwrite = 'y'
+        if overwrite.lower() == 'y':
+            try:
+                with open(new_filename, 'w') as f:
+                    f.write('\n'.join(new_buffer))
+                print("File saved (original file truncated, but not saved yet)")
+            except:
+                print("Could not save!")
+        else:
+            print("File not saved!")
 
     def save_buffer(self):
         if self.filename is None:
