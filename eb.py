@@ -32,12 +32,17 @@ class Editor:
         while True:
             command = input('?')
             try:
-                if command == 'x':
+                if command == 'x' or command == 'w':
                     try:
                         self.save_buffer()
-                        break
+                        if command == 'x':
+                            break
                     except:
                         print("Save failed!")
+                elif command == 'b':
+                    self.add_bom()
+                elif command == 'B':
+                    self.remove_bom()
                 elif command == 'p':
                     self.print_buffer()
                 elif command.startswith('a'):
@@ -161,11 +166,28 @@ class Editor:
         print('k  - comment out a line in the buffer')
         print('u  - uncomment a line in the buffer')
         print('i  - insert a line into the buffer')
+        print('b  - Add Unicode BOM to the beginning of the file')
+        print('B  - Remove Unicode BOM from the beginning of the file')
         print('h  - print this help message')
         print('q  - quit the editor without saving changes')
         print('qq - force quit without saving changes')
         print('x  - eXit the editor saving changes to file')
 
+    def add_bom(self):
+        if not self.buffer[0].startswith('\ufeff'):
+            if self.buffer:
+                self.buffer[0] = '\ufeff' + self.buffer[0]
+                print("BOM added")
+            else:
+                self.buffer.append('\ufeff')
+        else:
+            print("BOM already present")
+    def remove_bom(self):
+        if self.buffer and self.buffer[0].startswith('\ufeff'):
+            self.buffer[0] = self.buffer[0][1:]
+            print("BOM removed")
+        else:
+            print("No BOM present")
     def print_more(self):
         page_size = 20
         start = 0
