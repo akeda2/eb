@@ -268,7 +268,11 @@ class Editor:
         
         while True:
             ch = stdscr.getch()
-            if ch == 7:  # Ctrl-G (ASCII bell character)
+            # Catch the enter key:
+            if ch == 10:  # Ctrl-J (ASCII linefeed character)
+                new_line = editwin.instr(0, 0).decode().strip()
+                break
+            elif ch == 7:  # Ctrl-G (ASCII bell character)
                 new_line = editwin.instr(0, 0).decode().strip()
                 break
             elif ch == curses.KEY_BACKSPACE:
@@ -300,6 +304,8 @@ class Editor:
 
         #new_line = input("New line: ")
         #self.buffer[line_num] = new_line
+    
+    
     def comment_line(self, line_num, comment_char='#'):
         self.buffer[line_num] = comment_char + self.buffer[line_num]
     def uncomment_line(self, line_num, comment_char='#'):
