@@ -17,3 +17,10 @@ del:
 clean:
 	pyinstaller --clean eb.py
 	rm -rf ./dist/ ./build/ ./*.spec ./*.pyc ./*.log eb.spec dist/
+
+PREFIX ?= /usr/local
+BINDIR ?= $(PREFIX)/bin
+
+install:
+	mkdir -p $(DESTDIR)$(BINDIR)
+	install -m755 eb $(DESTDIR)$(BINDIR)/eb
