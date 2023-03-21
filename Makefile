@@ -4,7 +4,7 @@
 all: eb del
 # readme
 
-# Create s-tui executable
+# Create eb executable
 eb:
 	pyinstaller eb.py -F
 	mv dist/eb .
