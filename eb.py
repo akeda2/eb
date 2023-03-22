@@ -160,21 +160,24 @@ class Editor:
         print('p  - print the buffer with line numbers')
         print('m  - print the buffer one page at the time (more-style)')
         print('c  - print near Context of a line number')
-        print('t  - print the last n lines of the buffer (tail-style)')
+        print('t  - print the last n lines of the buffer (tail-style)\n')
+
         print('a  - append one or more lines to the buffer')
+        print('i  - insert a line into the buffer')
         print('d  - delete a line from the buffer')
         print('s  - substitute a line in the buffer')
         print('e  - edit a line in the buffer')
         print('k  - comment out a line in the buffer')
-        print('u  - uncomment a line in the buffer')
-        print('i  - insert a line into the buffer')
-        print('b  - Add Unicode BOM to the beginning of the file')
-        print('B  - Remove Unicode BOM from the beginning of the file')
+        print('u  - Uncomment a line in the buffer\n')
+        
+        print('b  - add Unicode BOM to the beginning of the file')
+        print('B  - remove unicode BOM from the beginning of the file')
         print('S  - Split from line number to end of file into a new file')
-        print('h  - print this help message')
+        print('h  - print this Help message\n')
+
         print('w  - Write/Save buffer to file')
-        print('q  - quit the editor without saving changes')
-        print('qq - force quit without saving changes')
+        print('q  - Quit the editor without saving changes')
+        print('qq - force Quit without saving changes')
         print('x  - eXit the editor saving changes to file')
 
     def add_bom(self):
