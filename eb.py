@@ -172,6 +172,7 @@ class Editor:
         print('B  - Remove Unicode BOM from the beginning of the file')
         print('S  - Split from line number to end of file into a new file')
         print('h  - print this help message')
+        print('w  - Write/Save buffer to file')
         print('q  - quit the editor without saving changes')
         print('qq - force quit without saving changes')
         print('x  - eXit the editor saving changes to file')
