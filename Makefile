@@ -6,7 +6,7 @@ all: eb del
 
 # Create eb executable
 eb:
-	pyinstaller eb.py -F
+	pyinstaller --clean eb.py -F
 	mv dist/eb .
 
 # Remove files created by pyinstaller
@@ -15,8 +15,8 @@ del:
 
 # Clear pyinstall cache and delete file
 clean:
-	pyinstaller --clean eb.py
-	rm -rf ./dist/ ./build/ ./*.spec ./*.pyc ./*.log eb.spec dist/
+	#pyinstaller --clean eb.py
+	rm -rf ./dist/ ./build/ ./*.spec ./*.pyc ./*.log eb.spec dist/ eb
 
 PREFIX ?= /usr/local
 BINDIR ?= $(PREFIX)/bin
