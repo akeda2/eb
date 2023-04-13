@@ -339,7 +339,11 @@ class Editor:
             self.filename = input('Enter filename to save buffer: ')
         try:
             with open(self.filename, 'w') as f:
-                f.write('\n'.join(self.buffer))
+                #f.write('\n'.join(self.buffer))
+                content = '\n'.join(self.buffer)
+                if self.buffer and not self.buffer[-1].endswith('\n'):
+                    content += '\n'
+                f.write(content)
             print("File saved")
         except:
             print("Could not save!")
