@@ -11,7 +11,7 @@ class Editor:
         self.filename = filename
         if self.filename is not None and os.path.isfile(self.filename):
             with open(self.filename) as f:
-                self.buffer = f.read().splitlines()
+                self.buffer = f.readlines()
         else:
             newfile = input("File not found! Create new file? [y/n]: ") or 'n'
             if newfile == 'y':
@@ -102,9 +102,14 @@ class Editor:
 
     def print_buffer(self):
         for i, line in enumerate(self.buffer, start=1):
-            #if self.old_version:
-            print('{i:3d}  {line}'.format(i=i, line=line))
+            #if i == len(self.buffer) and not line.endswith('\n'):
+            #    line += '\n'
+            #if line.strip() == '':
+            #    print('{i:3d}  {line}'.format(i=i, line="empty"))
             #else:
+            print('{i:3d}  {line}'.format(i=i, line=line.rstrip()))
+        if self.buffer and self.buffer[-1].endswith('\n'):
+            print('{:3d}'.format(i+1))
             #    print(f"{i:3d}  {line}")
 
     def append_lines(self,arg):
