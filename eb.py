@@ -208,7 +208,8 @@ class Editor:
             for i in range(start, end):
                 if i < len(self.buffer):
                     #if self.old_version:
-                    print('{i:3d}  {buffer}'.format(i=i +1, buffer=self.buffer[i]))
+                    #print('{i:3d}  {line}'.format(i=i, line=line.rstrip()))
+                    print('{i:3d}  {buffer}'.format(i=i +1, buffer=self.buffer[i]).rstrip())
                     #else:
                     #    print(f"{i + 1:3d}  {self.buffer[i]}")
                 else:
@@ -230,7 +231,7 @@ class Editor:
         start = max(0, len(self.buffer) - n)
         for i in range(start, len(self.buffer)):
             #if self.old_version:
-            print('{i:3d}  {buffer}'.format(i=i+1, buffer=self.buffer[i]))
+            print('{i:3d}  {buffer}'.format(i=i+1, buffer=self.buffer[i]).rstrip())
             #else:
             #    print(f"{i+1:3d}  {self.buffer[i]}")
 
@@ -241,7 +242,7 @@ class Editor:
         end = min(len(self.buffer), line_num + plusminus)
         for i in range(start, end):
             #if self.old_version:
-            print('{i:3d}  {buffer}'.format(i=i+1, buffer=self.buffer[i]))
+            print('{i:3d}  {buffer}'.format(i=i+1, buffer=self.buffer[i]).rstrip())
             #else:
             #    print(f"{i+1:3d}  {self.buffer[i]}")
 
