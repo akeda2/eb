@@ -101,16 +101,23 @@ class Editor:
                 raise
 
     def print_buffer(self):
-        for i, line in enumerate(self.buffer, start=1):
+        #for i, line in enumerate(self.buffer, start=1):
             #if i == len(self.buffer) and not line.endswith('\n'):
             #    line += '\n'
             #if line.strip() == '':
             #    print('{i:3d}  {line}'.format(i=i, line="empty"))
             #else:
-            print('{i:3d}  {line}'.format(i=i, line=line.rstrip()))
-        if self.buffer and self.buffer[-1].endswith('\n'):
-            print('{:3d}'.format(i+1))
+        #    print('{i:3d}  {line}'.format(i=i, line=line.rstrip()))
+        #if self.buffer and self.buffer[-1].endswith('\n'):
+        #    print('{:3d}'.format(i+1))
             #    print(f"{i:3d}  {line}")
+
+        for i, line in enumerate(self.buffer, start=1):
+            print('{i:3d}  {line}'.format(i=i, line=line.rstrip()))
+    
+        if self.buffer and self.buffer[-1].endswith('\n') and not self.buffer.__len__() > i-1:
+            print('{:3d}'.format(i+1))
+
 
     def append_lines(self,arg):
         if len(self.buffer) == 0:
@@ -140,7 +147,10 @@ class Editor:
         else:
             try:
                 index = int(arg)
-                del self.buffer[index - 1]
+                if index <= self.buffer.__len__():
+                    del self.buffer[index - 1]
+                else:
+                    print('Index out of range')
             except ValueError:
                 print('Invalid argument')
 
@@ -346,10 +356,13 @@ class Editor:
         try:
             with open(self.filename, 'w') as f:
                 #f.write('\n'.join(self.buffer))
-                content = '\n'.join(self.buffer)
+                #content = '\n'.join(self.buffer)
+                content = ''.join(self.buffer)
                 if self.buffer and not self.buffer[-1].endswith('\n'):
                     content += '\n'
+                #f.seek(0)
                 f.write(content)
+                #f.truncate()
             print("File saved")
         except:
             print("Could not save!")
