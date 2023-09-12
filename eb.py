@@ -45,8 +45,11 @@ class Editor:
                     self.add_bom()
                 elif command == 'B':
                     self.remove_bom()
-                elif command == 'p':
-                    self.print_buffer()
+                elif command.startswith('p'):
+                    if command.endswith('r'):
+                        self.print_buffer(raw=True)
+                    else:
+                        self.print_buffer()
                 elif command.startswith('a'):
                     self.append_lines(int(command[1:])) if command[1:] != '' else self.append_lines('x')
                 elif command.startswith('d'):
@@ -100,7 +103,7 @@ class Editor:
                 #pass
                 raise
 
-    def print_buffer(self):
+    def print_buffer(self, raw=False):
         #for i, line in enumerate(self.buffer, start=1):
             #if i == len(self.buffer) and not line.endswith('\n'):
             #    line += '\n'
@@ -111,13 +114,15 @@ class Editor:
         #if self.buffer and self.buffer[-1].endswith('\n'):
         #    print('{:3d}'.format(i+1))
             #    print(f"{i:3d}  {line}")
-
-        for i, line in enumerate(self.buffer, start=1):
-            print('{i:3d}  {line}'.format(i=i, line=line.rstrip()))
+        if raw:
+            for i, line in enumerate(self.buffer, start=1):
+                print('{i:3d}  {line}'.format(i=i, line=line.replace('\n', '\\n').replace('\r', '\\r')))
+        else:
+            for i, line in enumerate(self.buffer, start=1):
+                print('{i:3d}  {line}'.format(i=i, line=line.rstrip()))
     
         if self.buffer and self.buffer[-1].endswith('\n') and not self.buffer.__len__() > i-1:
             print('{:3d}'.format(i+1))
-
 
     def append_lines(self,arg):
         if len(self.buffer) == 0:
@@ -138,6 +143,8 @@ class Editor:
             line = input()
             if line == '.':
                 break
+            if not line.endswith('\n'):
+                line += '\n'
             new_lines.append(line)
         self.buffer[index:index] = new_lines
 
@@ -158,6 +165,8 @@ class Editor:
         try:
             index, text = arg.split('/')
             index = int(index)
+            if not text.endswith('\n'):
+                text += '\n'
             self.buffer[index - 1] = text
         except ValueError:
             print('Invalid argument')
@@ -168,11 +177,14 @@ class Editor:
         else:
             index = int(arg)
         line = input('New line: ')
+        if not line.endswith('\n'):
+                line += '\n'
         self.buffer.insert(index - 1, line)
 
     def print_help(self):
         print('Available commands:')
         print('p  - print the buffer with line numbers')
+        print('pr - print the buffer with line endings visible (raw)')
         print('m  - print the buffer one page at the time (more-style)')
         print('c  - print near Context of a line number')
         print('t  - print the last n lines of the buffer (tail-style)\n')
@@ -210,6 +222,12 @@ class Editor:
             print("BOM removed")
         else:
             print("No BOM present")
+    def printRawWithLineEndings(self, rawbuffer):
+        # Print all lines in the buffer with the line endings visible as \n and \r
+        for i, line in enumerate(rawbuffer, start=1):
+            print('{i:3d}  {line}'.format(i=i, line=line.replace('\n', '\\n').replace('\r', '\\r')))
+        #for i, line in enumerate(rawbuffer, start=1):
+        #    print('{i:3d}  {line}'.format(i=i, line=line.replace('\n', '\\n')))
     def print_more(self):
         page_size = 20
         start = 0
@@ -357,8 +375,13 @@ class Editor:
             with open(self.filename, 'w') as f:
                 #f.write('\n'.join(self.buffer))
                 #content = '\n'.join(self.buffer)
+                #print("Buffer: ")
+                #print(self.buffer, '\n')
+                #self.printRawWithLineEndings(self.buffer)
+                #self.print_buffer(raw=True)
                 content = ''.join(self.buffer)
                 if self.buffer and not self.buffer[-1].endswith('\n'):
+                    print("Appending newline")
                     content += '\n'
                 #f.seek(0)
                 f.write(content)
