@@ -6,7 +6,7 @@ all: eb del
 
 # Create eb executable
 eb:
-	pyinstaller --clean eb.py -F
+	pyinstaller --clean eb.py -F --noupx
 	mv dist/eb .
 
 # Remove files created by pyinstaller
