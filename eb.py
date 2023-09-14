@@ -48,6 +48,10 @@ class Editor:
                 elif command.startswith('p'):
                     if command.endswith('r'):
                         self.print_buffer(raw=True)
+                    elif command.endswith('h'):
+                        self.print_buffer(hex=True)
+                    elif command.endswith('l'):
+                        self.print_buffer(lineNumbers=False)
                     else:
                         self.print_buffer()
                 elif command.startswith('a'):
@@ -102,8 +106,55 @@ class Editor:
                 print("FAIL!")
                 #pass
                 raise
+    def print_with_hex_and_letter(self, buffer):
+        for line in buffer:
+            visible_line = line.replace('\n', '\\n').replace('\r', '\\r')
+            print(visible_line)
 
-    def print_buffer(self, raw=False):
+            hex_lines, char_lines = self.format_hex_with_letter(line)
+            for hex_line, char_line in zip(hex_lines, char_lines):
+                print(char_line)
+                print(hex_line)
+            print()  # Optional: Separate blocks with an empty line
+
+    def format_hex_with_letter(self,data, bytes_per_line=16):
+        hex_lines = []
+        char_lines = []
+        while data:
+            chunk = data[:bytes_per_line]
+            data = data[bytes_per_line:]
+
+            hex_chunk = ' '.join(['{:02x}'.format(b) for b in chunk.encode()])
+            hex_lines.append(hex_chunk)
+
+            # Convert to a printable string, replacing non-printable chars with '.'
+            char_chunk = ''.join([' ' + (chr(b) if 32 <= b < 127 else '.') + ' ' for b in chunk.encode()])
+            char_lines.append(char_chunk.rstrip())
+
+        return hex_lines, char_lines
+
+    def print_with_hex(self,buffer):
+        for line in buffer:#.splitlines(True):  # True keeps line endings
+            visible_line = line.replace('\n', '\\n').replace('\r', '\\r')
+            print(visible_line)
+
+            hex_lines = self.format_hex(line)
+            for hex_line in hex_lines:
+                print(hex_line)
+            print()  # Optional: Separate blocks with an empty line
+
+    def format_hex(self,data, bytes_per_line=16):
+        hex_lines = []
+        while data:
+            chunk = data[:bytes_per_line]
+            data = data[bytes_per_line:]
+
+            # Convert to hex, with spaces in between for each byte
+            hex_chunk = ' '.join(['{:02x}'.format(b) for b in chunk.encode()])
+            hex_lines.append(hex_chunk)
+
+        return hex_lines
+    def print_buffer(self, raw=False, hex=False, lineNumbers=True):
         #for i, line in enumerate(self.buffer, start=1):
             #if i == len(self.buffer) and not line.endswith('\n'):
             #    line += '\n'
@@ -114,16 +165,25 @@ class Editor:
         #if self.buffer and self.buffer[-1].endswith('\n'):
         #    print('{:3d}'.format(i+1))
             #    print(f"{i:3d}  {line}")
-        if raw:
+        if hex:
+            #self.print_with_hex(self.buffer)
+            self.print_with_hex_and_letter(self.buffer)
+        elif raw:
             for i, line in enumerate(self.buffer, start=1):
+                #hexline = line.encode().hex()
+                #hexline = ' '.join([line.encode().hex()[j:j+2] for j in range(0, len(line.encode().hex()), 2)])
+                #print('{i:3d}  {line} \n {hexline}'.format(i=i, line=line.replace('\n', '\\n').replace('\r', '\\r'), hexline=hexline))
                 print('{i:3d}  {line}'.format(i=i, line=line.replace('\n', '\\n').replace('\r', '\\r')))
-            print('\n', self.buffer, '\n')
+                #print('\n', self.buffer, '\n')
+        elif not lineNumbers:
+            for i, line in enumerate(self.buffer, start=1):
+                print('{line}'.format(line=line.rstrip()))
         else:
             for i, line in enumerate(self.buffer, start=1):
                 print('{i:3d}  {line}'.format(i=i, line=line.rstrip()))
     
-        if self.buffer and self.buffer[-1].endswith('\n') and not self.buffer.__len__() > i-1:
-            print('{:3d}'.format(i+1))
+            if self.buffer and self.buffer[-1].endswith('\n') and not self.buffer.__len__() > i-1:
+                print('{:3d}'.format(i+1))
 
     def append_lines(self,arg):
         if len(self.buffer) == 0:
@@ -186,6 +246,8 @@ class Editor:
         print('Available commands:')
         print('p  - print the buffer with line numbers')
         print('pr - print the buffer with line endings visible (raw)')
+        print('ph - print the buffer like pr but with hex values')
+        print('pl - print the buffer without line numbers')
         print('m  - print the buffer one page at the time (more-style)')
         print('c  - print near Context of a line number')
         print('t  - print the last n lines of the buffer (tail-style)\n')
