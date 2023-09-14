@@ -454,7 +454,7 @@ class Editor:
                 #f.write('\n'.join(self.buffer))
                 #content = '\n'.join(self.buffer)
                 #print("Buffer: ")
-                print(self.buffer, '\n')
+                #print(self.buffer, '\n')
                 #self.printRawWithLineEndings(self.buffer)
                 #self.print_buffer(raw=True)
                 content = ''.join(self.buffer)
