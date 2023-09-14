@@ -117,6 +117,7 @@ class Editor:
         if raw:
             for i, line in enumerate(self.buffer, start=1):
                 print('{i:3d}  {line}'.format(i=i, line=line.replace('\n', '\\n').replace('\r', '\\r')))
+            print('\n', self.buffer, '\n')
         else:
             for i, line in enumerate(self.buffer, start=1):
                 print('{i:3d}  {line}'.format(i=i, line=line.rstrip()))
@@ -376,7 +377,7 @@ class Editor:
                 #f.write('\n'.join(self.buffer))
                 #content = '\n'.join(self.buffer)
                 #print("Buffer: ")
-                #print(self.buffer, '\n')
+                print(self.buffer, '\n')
                 #self.printRawWithLineEndings(self.buffer)
                 #self.print_buffer(raw=True)
                 content = ''.join(self.buffer)
