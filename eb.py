@@ -128,7 +128,22 @@ class Editor:
             hex_lines.append(hex_chunk)
 
             # Convert to a printable string, replacing non-printable chars with '.'
-            char_chunk = ''.join([' ' + (chr(b) if 32 <= b < 127 else '.') + ' ' for b in chunk.encode()])
+            char_chunk = ''
+            for b in chunk.encode():
+                char = chr(b)
+                if char == '\n':
+                    char_chunk += '\\n'.ljust(3)
+                elif char == '\r':
+                    char_chunk += '\\r'.ljust(3)
+                elif char == '\t':
+                    char_chunk += '\\t'.ljust(3)
+                elif 32 <= b < 127:
+                    char_chunk += char.ljust(3)
+                else:
+                    char_chunk += ' . '.ljust(3)
+
+            """ # Convert to a printable string, replacing non-printable chars with '.'
+            char_chunk = ''.join([' ' + (chr(b) if 32 <= b < 127 else '.') + ' ' for b in chunk.encode()])"""
             char_lines.append(char_chunk.rstrip())
 
         return hex_lines, char_lines
