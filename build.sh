@@ -1,17 +1,42 @@
 #!/bin/bash
 #
 # Build and install:
+APPNAME="eb"
 #
 # Uses pyinstaller:
-if [ ! $(command -v pyinstaller) ]; then
-	if [ ! $(command -v pip3)]; then
-		echo "pip3 not installed...installing..."
-		sudo apt install python3-pip || echo "FAILED!"
-	fi
-	sudo pip3 install pyinstaller || sudo pip3 install pyinstaller --break-system-packages && echo "Installed pyinstaller"
+
+# Check for the existence of the venv module
+if python3 -m venv --help &> /dev/null; then
+    echo "Python venv is installed."
 else
-	sudo pip3 install --upgrade pyinstaller || sudo pip3 install pyinstaller --break-system-packages && "Updated pyinstaller"
+    echo "Python venv is not installed!"
+    echo "If you are using Debian/Ubuntu/etc, install via:"
+    echo "sudo apt update; sudo apt install python3-venv"
 fi
-echo "Running make..."
-make clean && make || echo "FAILED!"
-printf "\n\nRun 'sudo make install', to install to /usr/local/bin\n\n"
+
+# Create a virtual environment if it doesn't exist
+if [ ! -d "venv" ]; then
+  python3 -m venv venv
+fi
+
+# Activate the virtual environment
+source venv/bin/activate
+
+# Install the dependencies
+pip3 install -r requirements.txt
+
+# Run PyInstaller to create the executable
+pyinstaller --onefile "$APPNAME".py --clean -F --noupx
+
+# Move the executable to /usr/local/bin
+# You might need to run this script as root to have permission for this operation
+echo "Moving the executable to /usr/local/bin"
+sudo install -v -m 755 dist/"$APPNAME" /usr/local/bin/"$APPNAME"
+
+# Deactivate the virtual environment
+deactivate
+
+# Remove the build files:
+rm -rfv ./dist/ ./build/ ./*.spec ./*.pyc ./*.log "$APPNAME".spec dist/ "$APPNAME"
+
+echo "Build complete. Installed to /usr/local/bin/$APPNAME"
