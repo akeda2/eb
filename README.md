@@ -1,7 +1,7 @@
 # eb
 Line Ebitor
 ### Installation:
-#### Build with pyinstaller:
+#### Build (with venv):
 ```
 ./build.sh
 ```
@@ -14,6 +14,11 @@ Then:
 ```
 make
 make install
+```
+#### Cleanup and rebuild (if python/OS upgrade breaks stuff)
+```
+make clean
+./build.sh
 ```
 #### Install as it is:
 ```
