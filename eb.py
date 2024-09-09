@@ -368,8 +368,8 @@ class Editor:
         self.buffer[line_num] = new_line"""
     def modify_line(self, line_num):
         line_num -= 1
-        stringtoedit = self.buffer[line_num].strip()
-        new_line = prompt(f"orig: {stringtoedit}\nnew: ", default=stringtoedit)
+        stringtoedit = self.buffer[line_num].strip('\n')
+        new_line = prompt(f"orig: {stringtoedit}\nnew : ", default=stringtoedit)
         self.buffer[line_num] = new_line
 
     def modify_line_old(self, line_num):
