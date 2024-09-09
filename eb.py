@@ -2,6 +2,7 @@
 import sys
 import curses
 import os
+from prompt_toolkit import prompt
 #from curses import wrapper
 
 
@@ -366,6 +367,12 @@ class Editor:
         new_line = input("New line: {}".format(self.buffer[line_num]))
         self.buffer[line_num] = new_line"""
     def modify_line(self, line_num):
+        line_num -= 1
+        stringtoedit = self.buffer[line_num].strip()
+        new_line = prompt(f"orig: {stringtoedit}\nnew: ", default=stringtoedit)
+        self.buffer[line_num] = new_line
+
+    def modify_line_old(self, line_num):
         #print(f"{line_num}:{self.buffer[line_num]}")
         line_num -= 1
         stdscr = curses.initscr()
