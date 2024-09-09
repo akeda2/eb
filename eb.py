@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 import sys
-import curses
+#import curses
 import os
+from prompt_toolkit import prompt
+#from prompt_toolkit.key_binding import KeyBindings
 #from curses import wrapper
 
 
@@ -23,7 +25,34 @@ class Editor:
                     pass
             else:
                 sys.exit()
+    def print_help(self):
+        print('Available commands:')
+        print('p  - print the buffer with line numbers')
+        print('pr - print the buffer with line endings visible (raw)')
+        print('ph - print the buffer like pr but with hex values')
+        print('pl - print the buffer without line numbers')
+        print('m  - print the buffer one page at the time (more-style)')
+        print('c  - print near Context of a line number')
+        print('t  - print the last n lines of the buffer (tail-style)\n')
 
+        print('a  - append one or more lines to the buffer')
+        print('i  - insert a line into the buffer')
+        print('d  - delete a line from the buffer')
+        print('s  - substitute a line in the buffer')
+        print('e  - edit a line in the buffer')
+        print('k  - comment out a line in the buffer')
+        print('u  - Uncomment a line in the buffer\n')
+        
+        print('b  - add Unicode BOM to the beginning of the file')
+        print('B  - remove unicode BOM from the beginning of the file')
+        print('S  - Split from line number to end of file into a new file')
+        print('h  - print this Help message\n')
+
+        print('w  - Write/Save buffer to file')
+        print('q  - Quit the editor without saving changes')
+        print('qq - force Quit without saving changes')
+        print('x  - eXit the editor saving changes to file')
+    
     def run(self):
         print("eb - a primitive line-ebitor. 'h' is help, 'q' is quit. Python version: {0}.{1}.{2}".format(sys.version_info.major, sys.version_info.minor, sys.version_info.micro))
         #print(f"eb - a primitive line-ebitor. 'h' is help, 'q' is quit. Python version: {sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")
@@ -62,7 +91,9 @@ class Editor:
                     self.substitute_lines(command[1:])
                 elif command.startswith('e'):
                     #wrapper(self.modify_line(int(command[1:]))) if command[1:] != '' else wrapper(self.modify_line(int(input("Line number: "))))
-                    self.modify_line(int(command[1:])) if command[1:] != '' else self.modify_line(int(input("Line number: ")))
+                    selected_line_number = int(command[1:]) if command[1:] != '' else input("Line number: ")
+                    self.print_context(int(selected_line_number)-1, int(2))
+                    self.modify_line(int(command[1:])) if command[1:] != '' else self.modify_line(int(selected_line_number))
                 elif command.startswith('k'):
                     line_num, _, comment_char = command.partition(' ')[2].partition(' ')
                     if not comment_char:
@@ -106,6 +137,7 @@ class Editor:
                 print("FAIL!")
                 #pass
                 raise
+    
     def print_with_hex_and_letter(self, buffer):
         for line in buffer:
             visible_line = line.replace('\n', '\\n').replace('\r', '\\r')
@@ -257,34 +289,6 @@ class Editor:
                 line += '\n'
         self.buffer.insert(index - 1, line)
 
-    def print_help(self):
-        print('Available commands:')
-        print('p  - print the buffer with line numbers')
-        print('pr - print the buffer with line endings visible (raw)')
-        print('ph - print the buffer like pr but with hex values')
-        print('pl - print the buffer without line numbers')
-        print('m  - print the buffer one page at the time (more-style)')
-        print('c  - print near Context of a line number')
-        print('t  - print the last n lines of the buffer (tail-style)\n')
-
-        print('a  - append one or more lines to the buffer')
-        print('i  - insert a line into the buffer')
-        print('d  - delete a line from the buffer')
-        print('s  - substitute a line in the buffer')
-        print('e  - edit a line in the buffer')
-        print('k  - comment out a line in the buffer')
-        print('u  - Uncomment a line in the buffer\n')
-        
-        print('b  - add Unicode BOM to the beginning of the file')
-        print('B  - remove unicode BOM from the beginning of the file')
-        print('S  - Split from line number to end of file into a new file')
-        print('h  - print this Help message\n')
-
-        print('w  - Write/Save buffer to file')
-        print('q  - Quit the editor without saving changes')
-        print('qq - force Quit without saving changes')
-        print('x  - eXit the editor saving changes to file')
-
     def add_bom(self):
         if not self.buffer[0].startswith('\ufeff'):
             if self.buffer:
@@ -366,6 +370,12 @@ class Editor:
         new_line = input("New line: {}".format(self.buffer[line_num]))
         self.buffer[line_num] = new_line"""
     def modify_line(self, line_num):
+        line_num -= 1
+        stringtoedit = self.buffer[line_num].strip('\n')
+        new_line = prompt(f"orig:{stringtoedit}\nnew :", default=stringtoedit)
+        self.buffer[line_num] = new_line
+
+    """ def modify_line_old(self, line_num):
         #print(f"{line_num}:{self.buffer[line_num]}")
         line_num -= 1
         stdscr = curses.initscr()
@@ -419,7 +429,7 @@ class Editor:
         curses.endwin()
 
         #new_line = input("New line: ")
-        #self.buffer[line_num] = new_line
+        #self.buffer[line_num] = new_line """
     
     
     def comment_line(self, line_num, comment_char='#'):
