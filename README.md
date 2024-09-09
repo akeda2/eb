@@ -1,5 +1,5 @@
 # eb
-Line Ebitor
+A primitive line ebitor
 ### Installation:
 #### Build (creates/uses venv, installs in /usr/local/bin/eb):
 ```
