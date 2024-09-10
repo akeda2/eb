@@ -16,7 +16,7 @@ del:
 # Clear pyinstall cache and delete file
 clean:
 	#pyinstaller --clean eb.py
-	rm -rf ./dist/ ./build/ ./*.spec ./*.pyc ./*.log eb.spec dist/ eb ./venv
+	rm -rf ./dist/ ./build/ ./*.spec ./*.pyc ./*.log eb.spec dist/ ./venv
 
 PREFIX ?= /usr/local
 BINDIR ?= $(PREFIX)/bin
