@@ -1,13 +1,18 @@
 # eb
 A primitive line ebitor
 ### Installation:
-#### Build (creates/uses venv, installs in /usr/local/bin/eb):
+#### pipx:
 ```
-./build.sh
+sudo apt install pipx
+pipx install .
 ```
-#### Cleanup and rebuild (if python/OS upgrade breaks stuff)
+#### pip:
 ```
-make clean
+pip3 install .
+```
+#### Build (creates/uses venv, uses pyinstaller and installs in /usr/local/bin/eb):
+```
+cd eb
 ./build.sh
 ```
 #### Or manually:

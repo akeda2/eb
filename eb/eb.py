@@ -488,10 +488,18 @@ class Editor:
         except:
             print("Could not save!")
 
-if __name__ == '__main__':
+def main():
     if len(sys.argv) > 1:
         filename = sys.argv[1]
         editor = Editor(filename) #if os.path.exists(filename) else Editor()
     else:
         editor = Editor()
     editor.run()
+if __name__ == '__main__':
+    main()
+    """ if len(sys.argv) > 1:
+        filename = sys.argv[1]
+        editor = Editor(filename) #if os.path.exists(filename) else Editor()
+    else:
+        editor = Editor()
+    editor.run() """

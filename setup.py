@@ -15,7 +15,7 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'eb = eb:main',
+            'eb = eb.eb:main',
         ],
     },
     author='David Åkesson',
