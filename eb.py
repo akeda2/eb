@@ -75,7 +75,11 @@ class Editor:
                 elif command == 'B':
                     self.remove_bom()
                 elif command.startswith('p'):
-                    if command.endswith('r'):
+                    #print(command[1:]) 
+                    if command[1:] != '' and str.isdigit(command[1:].strip()):
+                        # Use tail instead:
+                        self.print_from(int(command[1:]))
+                    elif command.endswith('r'):
                         self.print_buffer(raw=True)
                     elif command.endswith('h'):
                         self.print_buffer(hex=True)
@@ -201,6 +205,12 @@ class Editor:
             hex_lines.append(hex_chunk)
 
         return hex_lines
+    def print_from(self,n=10):
+        start = n #max(0, len(self.buffer) - n)
+        for i in range(start, len(self.buffer)):
+            #if self.old_version:
+            print('{i:3d}  {buffer}'.format(i=i+1, buffer=self.buffer[i]).rstrip())
+
     def print_buffer(self, raw=False, hex=False, lineNumbers=True):
         #for i, line in enumerate(self.buffer, start=1):
             #if i == len(self.buffer) and not line.endswith('\n'):
