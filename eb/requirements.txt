@@ -1,0 +1,8 @@
+altgraph==0.17.4
+packaging==24.1
+prompt_toolkit==3.0.47
+pyinstaller==6.10.0
+pyinstaller-hooks-contrib==2024.8
+setuptools==74.1.2
+wcwidth==0.2.13
+wheel
