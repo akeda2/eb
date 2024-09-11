@@ -383,6 +383,8 @@ class Editor:
         line_num -= 1
         stringtoedit = self.buffer[line_num].strip('\n')
         new_line = prompt(f"orig:{stringtoedit}\nnew :", default=stringtoedit)
+        if not new_line.endswith('\n'):
+                new_line += '\n'
         self.buffer[line_num] = new_line
 
     """ def modify_line_old(self, line_num):
@@ -488,10 +490,18 @@ class Editor:
         except:
             print("Could not save!")
 
-if __name__ == '__main__':
+def main():
     if len(sys.argv) > 1:
         filename = sys.argv[1]
         editor = Editor(filename) #if os.path.exists(filename) else Editor()
     else:
         editor = Editor()
     editor.run()
+if __name__ == '__main__':
+    main()
+    """ if len(sys.argv) > 1:
+        filename = sys.argv[1]
+        editor = Editor(filename) #if os.path.exists(filename) else Editor()
+    else:
+        editor = Editor()
+    editor.run() """
