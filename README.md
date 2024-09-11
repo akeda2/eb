@@ -10,9 +10,15 @@ pipx install .
 ```
 pip3 install .
 ```
-#### Build (creates/uses venv, uses pyinstaller and installs in /usr/local/bin/eb):
+For all users:
 ```
+sudo pip3 install .
+```
+```--break-system-packages``` will sometimes be needed.
+
+#### Build (creates/uses venv, uses pyinstaller and installs in /usr/local/bin/eb):
 Navigate to 'eb' subdir:
+```
 cd eb
 ./build.sh
 ```
