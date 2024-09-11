@@ -6,3 +6,4 @@ pyinstaller-hooks-contrib==2024.8
 setuptools==74.1.2
 wcwidth==0.2.13
 wheel
+build

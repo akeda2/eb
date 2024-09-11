@@ -12,6 +12,7 @@ setup(
         'pyinstaller-hooks-contrib',
         'setuptools',
         'wcwidth',
+        'build',
     ],
     entry_points={
         'console_scripts': [

@@ -12,6 +12,7 @@ pip3 install .
 ```
 #### Build (creates/uses venv, uses pyinstaller and installs in /usr/local/bin/eb):
 ```
+Navigate to 'eb' subdir:
 cd eb
 ./build.sh
 ```
