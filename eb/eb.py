@@ -203,7 +203,7 @@ class Editor:
             data = data[bytes_per_line:]
 
             # Convert to hex, with spaces in between for each byte
-            hex_chunk = ' '.join(['{:02x}'.format(b) for b in chunk.encode()])
+            hex_chunk = ' '.join(['{:02x}'.format(b) for b in chunk.encode('latin-1')])
             hex_lines.append(hex_chunk)
 
         return hex_lines
