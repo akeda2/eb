@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import sys
-#import curses
 import os
 from prompt_toolkit import prompt
 #from prompt_toolkit.key_binding import KeyBindings
@@ -94,7 +93,6 @@ class Editor:
                 elif command.startswith('s'):
                     self.substitute_lines(command[1:])
                 elif command.startswith('e'):
-                    #wrapper(self.modify_line(int(command[1:]))) if command[1:] != '' else wrapper(self.modify_line(int(input("Line number: "))))
                     selected_line_number = int(command[1:]) if command[1:] != '' else input("Line number: ")
                     self.print_context(int(selected_line_number)-1, int(2))
                     self.modify_line(int(command[1:])) if command[1:] != '' else self.modify_line(int(selected_line_number))
@@ -214,26 +212,11 @@ class Editor:
             print('{i:3d}  {buffer}'.format(i=i+1, buffer=self.buffer[i]).rstrip())
 
     def print_buffer(self, raw=False, hex=False, lineNumbers=True):
-        #for i, line in enumerate(self.buffer, start=1):
-            #if i == len(self.buffer) and not line.endswith('\n'):
-            #    line += '\n'
-            #if line.strip() == '':
-            #    print('{i:3d}  {line}'.format(i=i, line="empty"))
-            #else:
-        #    print('{i:3d}  {line}'.format(i=i, line=line.rstrip()))
-        #if self.buffer and self.buffer[-1].endswith('\n'):
-        #    print('{:3d}'.format(i+1))
-            #    print(f"{i:3d}  {line}")
         if hex:
-            #self.print_with_hex(self.buffer)
             self.print_with_hex_and_letter(self.buffer)
         elif raw:
             for i, line in enumerate(self.buffer, start=1):
-                #hexline = line.encode().hex()
-                #hexline = ' '.join([line.encode().hex()[j:j+2] for j in range(0, len(line.encode().hex()), 2)])
-                #print('{i:3d}  {line} \n {hexline}'.format(i=i, line=line.replace('\n', '\\n').replace('\r', '\\r'), hexline=hexline))
                 print('{i:3d}  {line}'.format(i=i, line=line.replace('\n', '\\n').replace('\r', '\\r')))
-                #print('\n', self.buffer, '\n')
         elif not lineNumbers:
             for i, line in enumerate(self.buffer, start=1):
                 print('{line}'.format(line=line.rstrip()))
@@ -320,8 +303,6 @@ class Editor:
         # Print all lines in the buffer with the line endings visible as \n and \r
         for i, line in enumerate(rawbuffer, start=1):
             print('{i:3d}  {line}'.format(i=i, line=line.replace('\n', '\\n').replace('\r', '\\r')))
-        #for i, line in enumerate(rawbuffer, start=1):
-        #    print('{i:3d}  {line}'.format(i=i, line=line.replace('\n', '\\n')))
     def print_more(self):
         page_size = 20
         start = 0
@@ -329,20 +310,12 @@ class Editor:
         while True:
             for i in range(start, end):
                 if i < len(self.buffer):
-                    #if self.old_version:
-                    #print('{i:3d}  {line}'.format(i=i, line=line.rstrip()))
                     print('{i:3d}  {buffer}'.format(i=i +1, buffer=self.buffer[i]).rstrip())
-                    #else:
-                    #    print(f"{i + 1:3d}  {self.buffer[i]}")
                 else:
                     break
             if end >= len(self.buffer):
                 break
-            #if self.old_version:
-                # Use a non f-string to make it compatible with old python versions
             prompt = 'More ({end}-{page_size})?'.format(end=end+1, page_size=min(end + page_size, len(self.buffer)))
-            #else:
-            #    prompt = f"More ({end + 1}-{min(end + page_size, len(self.buffer))})? "
             command = input(prompt)
             if command == 'q':
                 break
@@ -352,10 +325,7 @@ class Editor:
     def print_tail(self,n=10):
         start = max(0, len(self.buffer) - n)
         for i in range(start, len(self.buffer)):
-            #if self.old_version:
             print('{i:3d}  {buffer}'.format(i=i+1, buffer=self.buffer[i]).rstrip())
-            #else:
-            #    print(f"{i+1:3d}  {self.buffer[i]}")
 
     def print_context(self,line_num,plusminus=5):
         if line_num == 0 or line_num == '':
@@ -363,24 +333,11 @@ class Editor:
         start = max(0, line_num - plusminus)
         end = min(len(self.buffer), line_num + plusminus)
         for i in range(start, end):
-            #if self.old_version:
             print('{i:3d}  {buffer}'.format(i=i+1, buffer=self.buffer[i]).rstrip())
-            #else:
-            #    print(f"{i+1:3d}  {self.buffer[i]}")
 
     def print_line(self, line_num):
-        #if self.old_version:
         print('{line_num:3d}  {buffer}'.format(line_num=line_num, buffer=self.buffer[line_num - 1]))
-        #else:
-        #    print(f"{line_num}:{self.buffer[line_num]}")
 
-    """def modify_line(self, line_num, new_line):
-        self.buffer[line_num] = new_line"""
-    
-    """def modify_line(self, line_num):
-        print(f"{line_num}:{self.buffer[line_num]}")
-        new_line = input("New line: {}".format(self.buffer[line_num]))
-        self.buffer[line_num] = new_line"""
     def modify_line(self, line_num):
         line_num -= 1
         stringtoedit = self.buffer[line_num].strip('\n')
@@ -389,63 +346,6 @@ class Editor:
                 new_line += '\n'
         self.buffer[line_num] = new_line
 
-    """ def modify_line_old(self, line_num):
-        #print(f"{line_num}:{self.buffer[line_num]}")
-        line_num -= 1
-        stdscr = curses.initscr()
-        #curses.resizeterm(24, 80)
-        curses.noecho()
-        curses.cbreak()
-        stdscr.keypad(True)
-        stdscr.clear()
-        stringtoedit = self.buffer[line_num].strip()
-        stdscr.addstr("Edit the following line and press Ctrl-G to save:\n\n")
-        editwin = curses.newwin(1, 80, 2, 0)
-        editwin.addstr(0, 0, stringtoedit)
-        stdscr.refresh()
-        editwin.refresh()
-        curses.curs_set(1)
-        
-        while True:
-            ch = stdscr.getch()
-            # Catch the enter key:
-            if ch == 10:  # Ctrl-J (ASCII linefeed character)
-                new_line = editwin.instr(0, 0).decode().strip()
-                break
-            elif ch == 7:  # Ctrl-G (ASCII bell character)
-                new_line = editwin.instr(0, 0).decode().strip()
-                break
-            elif ch == curses.KEY_BACKSPACE:
-                #editwin.delch()
-                stringtoedit = stringtoedit[:-1]
-            elif ch == curses.KEY_LEFT:
-                editwin.move(0, editwin.getyx()[1] - 1)
-            elif ch == curses.KEY_RIGHT:
-                editwin.move(0, editwin.getyx()[1] + 1)
-            
-
-            else:
-                editwin.addch(ch)
-                stringtoedit += chr(ch)
-            #self.buffer[line_num] = stringtoedit #+ '\n'
-            editwin.clear()
-            editwin.addstr(0, 0, stringtoedit)
-            editwin.refresh()
-    
-        self.buffer[line_num] = new_line #+ '\n'
-        
-
-        stdscr.refresh()
-        curses.curs_set(0)
-        curses.nocbreak()
-        stdscr.keypad(False)
-        curses.echo()
-        curses.endwin()
-
-        #new_line = input("New line: ")
-        #self.buffer[line_num] = new_line """
-    
-    
     def comment_line(self, line_num, comment_char='#'):
         self.buffer[line_num] = comment_char + self.buffer[line_num]
     def uncomment_line(self, line_num, comment_char='#'):
@@ -475,19 +375,11 @@ class Editor:
             self.filename = input('Enter filename to save buffer: ')
         try:
             with open(self.filename, 'w') as f:
-                #f.write('\n'.join(self.buffer))
-                #content = '\n'.join(self.buffer)
-                #print("Buffer: ")
-                #print(self.buffer, '\n')
-                #self.printRawWithLineEndings(self.buffer)
-                #self.print_buffer(raw=True)
                 content = ''.join(self.buffer)
                 if self.buffer and not self.buffer[-1].endswith('\n'):
                     print("Appending newline")
                     content += '\n'
-                #f.seek(0)
                 f.write(content)
-                #f.truncate()
             print("File saved")
         except:
             print("Could not save!")
@@ -501,9 +393,3 @@ def main():
     editor.run()
 if __name__ == '__main__':
     main()
-    """ if len(sys.argv) > 1:
-        filename = sys.argv[1]
-        editor = Editor(filename) #if os.path.exists(filename) else Editor()
-    else:
-        editor = Editor()
-    editor.run() """
