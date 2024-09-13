@@ -173,8 +173,10 @@ class Editor:
                     char_chunk += '\\r'.ljust(3)
                 elif char == '\t':
                     char_chunk += '\\t'.ljust(3)
-                elif 32 <= b < 127:
-                    char_chunk += char.ljust(3)
+                #elif 32 <= b < 127:
+                #    char_chunk += char.ljust(3)
+                elif 32 <= b < 127 or 128 <= b <= 255:  # Printable characters in standard and extended ASCII range
+                    char_chunk += chr(b).ljust(3)
                 else:
                     char_chunk += ' . '.ljust(3)
 
