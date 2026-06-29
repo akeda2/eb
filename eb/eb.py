@@ -15,7 +15,7 @@ class Editor:
         self.buffer = []
         self.filename = filename
         if self.filename is not None and os.path.isfile(self.filename):
-            with open(self.filename) as f:
+            with open(self.filename, newline='') as f:
                 self.buffer = f.readlines()
         else:
             newfile = input("File not found! Create new file? [y/n]: ") or 'n'
@@ -24,13 +24,31 @@ class Editor:
                     self.filename = input("Enter filename (" + self.filename + "): ") or self.filename
                 else:
                     self.filename = input("Enter filename: ")
-                with open(self.filename, 'w') as f:
+                with open(self.filename, 'w', newline='') as f:
                     pass
             else:
                 sys.exit()
 
     def read_line(self, message=''):
         return prompt(message)
+
+    def _default_line_ending(self):
+        for line in self.buffer:
+            if line.endswith('\r\n'):
+                return '\r\n'
+            if line.endswith('\n'):
+                return '\n'
+            if line.endswith('\r'):
+                return '\r'
+        return '\n'
+
+    def _ensure_line_ending(self, value, line_ending=None):
+        if line_ending is not None:
+            return value.rstrip('\r\n') + line_ending
+
+        if value.endswith('\r\n') or value.endswith('\n') or value.endswith('\r'):
+            return value
+        return value + self._default_line_ending()
 
     def print_help(self):
         print('Available commands:')
@@ -49,6 +67,10 @@ class Editor:
         print('e  - edit a line in the buffer')
         print('k  - comment out a line in the buffer')
         print('u  - Uncomment a line in the buffer\n')
+        print('nlf   - convert all line endings in buffer to LF')
+        print('ncr   - convert all line endings in buffer to CR')
+        print('ncrlf - convert all line endings in buffer to CRLF')
+        print('n     - choose line ending interactively (lf/cr/crlf)\n')
         
         print('b  - add Unicode BOM to the beginning of the file')
         print('B  - remove unicode BOM from the beginning of the file')
@@ -107,6 +129,7 @@ class Editor:
             'i': self._command_insert,
             't': self._command_tail,
             'c': self._command_context,
+            'n': self._command_newline,
         }
         handler = prefix_dispatch.get(command[0])
         if handler is None:
@@ -211,6 +234,32 @@ class Editor:
             line_num = self._parse_optional_line_number(parts[0])
             context_num = int(parts[1]) if len(parts) > 1 and parts[1] else 5
         self.print_context(line_num - 1, context_num)
+
+    def _command_newline(self, command):
+        style = command[1:].strip().lower()
+        if not style:
+            style = self.read_line('Line ending (lf/cr/crlf): ').strip().lower()
+
+        line_endings = {
+            'lf': '\n',
+            'cr': '\r',
+            'crlf': '\r\n',
+        }
+        selected = line_endings.get(style)
+        if selected is None:
+            raise CommandError("Invalid line ending. Use one of: lf, cr, crlf")
+
+        self.convert_line_endings(selected)
+        print("Line endings converted to {0}".format(style.upper()))
+
+    def convert_line_endings(self, target_line_ending):
+        updated = []
+        for line in self.buffer:
+            if line.endswith('\r\n') or line.endswith('\n') or line.endswith('\r'):
+                updated.append(line.rstrip('\r\n') + target_line_ending)
+            else:
+                updated.append(line)
+        self.buffer = updated
     
     def print_with_hex_and_letter(self, buffer):
         for line in buffer:
@@ -318,8 +367,7 @@ class Editor:
             line = self.read_line()
             if line == '.':
                 break
-            if not line.endswith('\n'):
-                line += '\n'
+            line = self._ensure_line_ending(line)
             new_lines.append(line)
         self.buffer[index:index] = new_lines
 
@@ -340,8 +388,7 @@ class Editor:
         try:
             index, text = arg.split('/')
             index = int(index)
-            if not text.endswith('\n'):
-                text += '\n'
+            text = self._ensure_line_ending(text)
             self.buffer[index - 1] = text
         except ValueError:
             print('Invalid argument')
@@ -352,8 +399,7 @@ class Editor:
         else:
             index = int(arg)
         line = self.read_line('New line: ')
-        if not line.endswith('\n'):
-                line += '\n'
+        line = self._ensure_line_ending(line)
         self.buffer.insert(index - 1, line)
 
     def add_bom(self):
@@ -412,11 +458,19 @@ class Editor:
 
     def modify_line(self, line_num):
         line_num -= 1
-        stringtoedit = self.buffer[line_num].strip('\n')
+        original_line = self.buffer[line_num]
+        if original_line.endswith('\r\n'):
+            line_ending = '\r\n'
+        elif original_line.endswith('\n'):
+            line_ending = '\n'
+        elif original_line.endswith('\r'):
+            line_ending = '\r'
+        else:
+            line_ending = self._default_line_ending()
+
+        stringtoedit = original_line.rstrip('\r\n')
         new_line = prompt(f"orig:{stringtoedit}\nnew :", default=stringtoedit)
-        if not new_line.endswith('\n'):
-                new_line += '\n'
-        self.buffer[line_num] = new_line
+        self.buffer[line_num] = self._ensure_line_ending(new_line, line_ending)
 
     def comment_line(self, line_num, comment_char='#'):
         self.buffer[line_num] = comment_char + self.buffer[line_num]
@@ -434,8 +488,8 @@ class Editor:
             overwrite = 'y'
         if overwrite.lower() == 'y':
             try:
-                with open(new_filename, 'w') as f:
-                    f.write('\n'.join(new_buffer))
+                with open(new_filename, 'w', newline='') as f:
+                    f.write(''.join(new_buffer))
                 print("File saved (original file truncated, but not saved yet)")
             except OSError as err:
                 print("Could not save! {0}".format(err))
@@ -446,11 +500,11 @@ class Editor:
         if self.filename is None:
             self.filename = self.read_line('Enter filename to save buffer: ')
         try:
-            with open(self.filename, 'w') as f:
+            with open(self.filename, 'w', newline='') as f:
                 content = ''.join(self.buffer)
                 if self.buffer and not self.buffer[-1].endswith('\n'):
                     print("Appending newline")
-                    content += '\n'
+                    content += self._default_line_ending()
                 f.write(content)
             print("File saved")
         except OSError as err:
