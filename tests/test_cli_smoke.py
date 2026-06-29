@@ -16,10 +16,11 @@ class CliSmokeTests(unittest.TestCase):
                 f.write("line1\n")
 
             editor = Editor(file_path)
-            with patch("builtins.input", side_effect=["p", "q", "y"]):
-                output = io.StringIO()
-                with redirect_stdout(output):
-                    editor.run()
+            with patch("builtins.input", side_effect=["p", "q"]):
+                with patch.object(editor, "read_line", return_value="y"):
+                    output = io.StringIO()
+                    with redirect_stdout(output):
+                        editor.run()
 
             stdout = output.getvalue()
             self.assertIn("line1", stdout)

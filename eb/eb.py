@@ -28,6 +28,10 @@ class Editor:
                     pass
             else:
                 sys.exit()
+
+    def read_line(self, message=''):
+        return prompt(message)
+
     def print_help(self):
         print('Available commands:')
         print('p  - print the buffer with line numbers')
@@ -116,7 +120,7 @@ class Editor:
         return True
 
     def _confirm_quit(self):
-        quit_not_save = input("Really quit without saving? (x in main menu eXits and saves) y/n: ") or 'n'
+        quit_not_save = self.read_line("Really quit without saving? (x in main menu eXits and saves) y/n: ") or 'n'
         return quit_not_save == 'y'
 
     def _command_split(self, command):
@@ -155,7 +159,7 @@ class Editor:
             return
 
         line_number = self._parse_optional_line_number(arg)
-        text = input('Replacement text: ')
+        text = self.read_line('Replacement text: ')
         self.substitute_lines("{0}/{1}".format(line_number, text))
 
     def _command_edit(self, command):
@@ -167,12 +171,12 @@ class Editor:
     def _parse_optional_line_number(self, line_text):
         if line_text:
             return int(line_text)
-        return int(input("Line number: "))
+        return int(self.read_line("Line number: "))
 
     def _parse_comment_command(self, command):
         payload = command[1:].strip()
         if not payload:
-            line_num = int(input("Line number: "))
+            line_num = int(self.read_line("Line number: "))
             return line_num - 1, '#'
 
         parts = payload.split(maxsplit=1)
@@ -301,7 +305,7 @@ class Editor:
         else:
             print(int(len(self.buffer)))
             if arg == 'x' or arg == '':
-                index_in = input('Insert after line: (last) ')
+                index_in = self.read_line('Insert after line: (last) ')
                 if index_in.strip():
                     index = int(index_in)
                 else:
@@ -311,7 +315,7 @@ class Editor:
         print('Enter lines to append. End with a line containing a single dot.')
         new_lines = []
         while True:
-            line = input()
+            line = self.read_line()
             if line == '.':
                 break
             if not line.endswith('\n'):
@@ -344,10 +348,10 @@ class Editor:
 
     def insert_line(self, arg):
         if arg == '' or arg == 0:
-            index = int(input('Line number: '))
+            index = int(self.read_line('Line number: '))
         else:
             index = int(arg)
-        line = input('New line: ')
+        line = self.read_line('New line: ')
         if not line.endswith('\n'):
                 line += '\n'
         self.buffer.insert(index - 1, line)
@@ -383,8 +387,8 @@ class Editor:
                     break
             if end >= len(self.buffer):
                 break
-            prompt = 'More ({end}-{page_size})?'.format(end=end+1, page_size=min(end + page_size, len(self.buffer)))
-            command = input(prompt)
+            prompt_text = 'More ({end}-{page_size})?'.format(end=end+1, page_size=min(end + page_size, len(self.buffer)))
+            command = self.read_line(prompt_text)
             if command == 'q':
                 break
             start = end
@@ -397,7 +401,7 @@ class Editor:
 
     def print_context(self,line_num,plusminus=5):
         if line_num == 0 or line_num == '':
-            line_num = int(input("Line number: "))
+            line_num = int(self.read_line("Line number: "))
         start = max(0, line_num - plusminus)
         end = min(len(self.buffer), line_num + plusminus)
         for i in range(start, end):
@@ -421,11 +425,11 @@ class Editor:
             self.buffer[line_num] = self.buffer[line_num][1:]
     def split_from_line_to_new_file(self, line_num):
         line_num -= 1
-        new_filename = input("Enter new filename: ")
+        new_filename = self.read_line("Enter new filename: ")
         new_buffer = self.buffer[line_num:]
         self.buffer = self.buffer[:line_num]
         if os.path.isfile(new_filename):
-            overwrite = input("File already exists! Overwrite? (y/N): ") or 'n'
+            overwrite = self.read_line("File already exists! Overwrite? (y/N): ") or 'n'
         else:
             overwrite = 'y'
         if overwrite.lower() == 'y':
@@ -440,7 +444,7 @@ class Editor:
 
     def save_buffer(self):
         if self.filename is None:
-            self.filename = input('Enter filename to save buffer: ')
+            self.filename = self.read_line('Enter filename to save buffer: ')
         try:
             with open(self.filename, 'w') as f:
                 content = ''.join(self.buffer)

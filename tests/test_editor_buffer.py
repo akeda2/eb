@@ -18,12 +18,12 @@ class EditorBufferTests(unittest.TestCase):
         self.temp_dir.cleanup()
 
     def test_insert_line(self):
-        with patch("builtins.input", return_value="inserted"):
+        with patch.object(self.editor, "read_line", return_value="inserted"):
             self.editor.insert_line(2)
         self.assertEqual(self.editor.buffer[1], "inserted\n")
 
     def test_append_lines_after_selected_index(self):
-        with patch("builtins.input", side_effect=["new1", "new2", "."]):
+        with patch.object(self.editor, "read_line", side_effect=["new1", "new2", "."]):
             self.editor.append_lines(2)
         self.assertEqual(self.editor.buffer[2], "new1\n")
         self.assertEqual(self.editor.buffer[3], "new2\n")
@@ -36,7 +36,7 @@ class EditorBufferTests(unittest.TestCase):
         self.assertEqual(self.editor.buffer[0], "replaced\n")
 
     def test_delete_command_prompts_for_missing_line_number(self):
-        with patch("builtins.input", return_value="2"):
+        with patch.object(self.editor, "read_line", return_value="2"):
             self.editor.execute_command("d")
         self.assertEqual(self.editor.buffer, ["line1\n"])
 
@@ -45,7 +45,7 @@ class EditorBufferTests(unittest.TestCase):
         self.assertEqual(self.editor.buffer, ["line1\n"])
 
     def test_substitute_command_prompts_for_missing_line_number(self):
-        with patch("builtins.input", side_effect=["2", "changed"]):
+        with patch.object(self.editor, "read_line", side_effect=["2", "changed"]):
             self.editor.execute_command("s")
         self.assertEqual(self.editor.buffer[1], "changed\n")
 
@@ -54,7 +54,7 @@ class EditorBufferTests(unittest.TestCase):
         self.assertEqual(self.editor.buffer[1], "changed\n")
 
     def test_insert_command_prompts_for_missing_line_number(self):
-        with patch("builtins.input", side_effect=["2", "inserted"]):
+        with patch.object(self.editor, "read_line", side_effect=["2", "inserted"]):
             self.editor.execute_command("i")
         self.assertEqual(self.editor.buffer[1], "inserted\n")
 
@@ -64,7 +64,7 @@ class EditorBufferTests(unittest.TestCase):
         mock_print_context.assert_called_once_with(1, 5)
 
     def test_context_command_prompts_for_missing_line_number(self):
-        with patch("builtins.input", return_value="2"):
+        with patch.object(self.editor, "read_line", return_value="2"):
             with patch.object(self.editor, "print_context") as mock_print_context:
                 self.editor.execute_command("c")
         mock_print_context.assert_called_once_with(1, 5)
@@ -74,7 +74,7 @@ class EditorBufferTests(unittest.TestCase):
         self.assertEqual(self.editor.buffer[1], "#line2\n")
 
     def test_comment_command_prompts_for_missing_line_number(self):
-        with patch("builtins.input", return_value="2"):
+        with patch.object(self.editor, "read_line", return_value="2"):
             self.editor.execute_command("k")
         self.assertEqual(self.editor.buffer[1], "#line2\n")
 
@@ -107,7 +107,7 @@ class EditorBufferTests(unittest.TestCase):
 
     def test_split_from_line_to_new_file(self):
         new_file = os.path.join(self.temp_dir.name, "split.txt")
-        with patch("builtins.input", return_value=new_file):
+        with patch.object(self.editor, "read_line", return_value=new_file):
             self.editor.split_from_line_to_new_file(2)
 
         with open(new_file, "r") as f:
