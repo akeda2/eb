@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from eb.eb import Editor
+from eb.eb import Editor, CommandError
 
 
 class EditorBufferTests(unittest.TestCase):
@@ -44,6 +44,16 @@ class EditorBufferTests(unittest.TestCase):
         self.editor.execute_command("d2")
         self.assertEqual(self.editor.buffer, ["line1\n"])
 
+    def test_delete_command_rejects_zero(self):
+        with self.assertRaisesRegex(CommandError, "line number must be >= 1"):
+            self.editor.execute_command("d0")
+        self.assertEqual(self.editor.buffer, ["line1\n", "line2\n"])
+
+    def test_delete_command_rejects_out_of_range(self):
+        with self.assertRaisesRegex(CommandError, "out of range"):
+            self.editor.execute_command("d3")
+        self.assertEqual(self.editor.buffer, ["line1\n", "line2\n"])
+
     def test_substitute_command_prompts_for_missing_line_number(self):
         with patch.object(self.editor, "read_line", side_effect=["2", "changed"]):
             self.editor.execute_command("s")
@@ -58,6 +68,31 @@ class EditorBufferTests(unittest.TestCase):
             self.editor.execute_command("i")
         self.assertEqual(self.editor.buffer[1], "inserted\n")
 
+    def test_insert_command_rejects_zero(self):
+        with self.assertRaisesRegex(CommandError, "line number must be >= 1"):
+            self.editor.execute_command("i0")
+        self.assertEqual(self.editor.buffer, ["line1\n", "line2\n"])
+
+    def test_insert_command_allows_insert_at_end(self):
+        with patch.object(self.editor, "read_line", return_value="inserted"):
+            self.editor.execute_command("i3")
+        self.assertEqual(self.editor.buffer, ["line1\n", "line2\n", "inserted\n"])
+
+    def test_insert_command_rejects_above_end(self):
+        with self.assertRaisesRegex(CommandError, "out of range"):
+            self.editor.execute_command("i4")
+        self.assertEqual(self.editor.buffer, ["line1\n", "line2\n"])
+
+    def test_substitute_command_rejects_zero(self):
+        with self.assertRaisesRegex(CommandError, "line number must be >= 1"):
+            self.editor.execute_command("s0/changed")
+        self.assertEqual(self.editor.buffer, ["line1\n", "line2\n"])
+
+    def test_substitute_command_rejects_out_of_range(self):
+        with self.assertRaisesRegex(CommandError, "out of range"):
+            self.editor.execute_command("s3/changed")
+        self.assertEqual(self.editor.buffer, ["line1\n", "line2\n"])
+
     def test_context_command_accepts_inline_line_number(self):
         with patch.object(self.editor, "print_context") as mock_print_context:
             self.editor.execute_command("c2")
@@ -69,6 +104,10 @@ class EditorBufferTests(unittest.TestCase):
                 self.editor.execute_command("c")
         mock_print_context.assert_called_once_with(1, 5)
 
+    def test_context_command_rejects_out_of_range(self):
+        with self.assertRaisesRegex(CommandError, "out of range"):
+            self.editor.execute_command("c3")
+
     def test_comment_command_accepts_inline_line_number(self):
         self.editor.execute_command("k2")
         self.assertEqual(self.editor.buffer[1], "#line2\n")
@@ -78,10 +117,18 @@ class EditorBufferTests(unittest.TestCase):
             self.editor.execute_command("k")
         self.assertEqual(self.editor.buffer[1], "#line2\n")
 
+    def test_comment_command_rejects_out_of_range(self):
+        with self.assertRaisesRegex(CommandError, "out of range"):
+            self.editor.execute_command("k3")
+
     def test_uncomment_command_accepts_inline_line_number(self):
         self.editor.buffer[1] = "#line2\n"
         self.editor.execute_command("u2")
         self.assertEqual(self.editor.buffer[1], "line2\n")
+
+    def test_uncomment_command_rejects_out_of_range(self):
+        with self.assertRaisesRegex(CommandError, "out of range"):
+            self.editor.execute_command("u3")
 
     def test_comment_and_uncomment(self):
         self.editor.comment_line(0, "#")
@@ -96,6 +143,11 @@ class EditorBufferTests(unittest.TestCase):
 
         self.editor.remove_bom()
         self.assertFalse(self.editor.buffer[0].startswith("\ufeff"))
+
+    def test_add_bom_on_empty_buffer(self):
+        self.editor.buffer = []
+        self.editor.add_bom()
+        self.assertEqual(self.editor.buffer, ["\ufeff"])
 
     def test_save_buffer_appends_trailing_newline(self):
         self.editor.buffer = ["hello"]
@@ -174,6 +226,19 @@ class EditorBufferTests(unittest.TestCase):
 
         self.assertEqual(split_content, b"line2\r\nline3\r\n")
 
+    def test_cr_only_save_does_not_append_extra_line_ending(self):
+        cr_file = os.path.join(self.temp_dir.name, "mac-classic.txt")
+        with open(cr_file, "wb") as f:
+            f.write(b"line1\rline2\r")
+
+        editor = Editor(cr_file)
+        editor.save_buffer()
+
+        with open(cr_file, "rb") as f:
+            content = f.read()
+
+        self.assertEqual(content, b"line1\rline2\r")
+
     def test_newline_command_converts_to_crlf(self):
         self.editor.buffer = ["line1\n", "line2\n"]
         self.editor.execute_command("ncrlf")
@@ -206,6 +271,14 @@ class EditorBufferTests(unittest.TestCase):
 
         self.assertEqual(self.editor.buffer, ["line1\n"])
         self.assertEqual(split_content, "line2\nline3\n")
+
+    def test_split_command_rejects_out_of_range(self):
+        with self.assertRaisesRegex(CommandError, "out of range"):
+            self.editor.execute_command("S3")
+
+    def test_append_command_rejects_out_of_range(self):
+        with self.assertRaisesRegex(CommandError, "out of range"):
+            self.editor.execute_command("a3")
 
 
 if __name__ == "__main__":

@@ -154,6 +154,7 @@ class Editor:
     def _command_split(self, command):
         line_text = command[1:].strip()
         line_number = self._parse_optional_line_number(line_text)
+        self._validate_line_number_for_command(line_number, 'S')
         self.split_from_line_to_new_file(line_number)
 
     def _command_print(self, command):
@@ -170,12 +171,18 @@ class Editor:
             self.print_buffer()
 
     def _command_append(self, command):
-        arg = command[1:]
-        self.append_lines(int(arg)) if arg != '' else self.append_lines('x')
+        arg = command[1:].strip()
+        if arg != '':
+            line_number = self._parse_optional_line_number(arg)
+            self._validate_line_number_for_command(line_number, 'a')
+            self.append_lines(line_number)
+            return
+        self.append_lines('x')
 
     def _command_delete(self, command):
         arg = command[1:].strip()
         line_number = self._parse_optional_line_number(arg)
+        self._validate_line_number_for_command(line_number, 'd')
         self.delete_lines(str(line_number))
 
     def _command_substitute(self, command):
@@ -183,32 +190,77 @@ class Editor:
         if '/' in arg:
             line_text, text = arg.split('/', 1)
             line_number = self._parse_optional_line_number(line_text.strip())
+            self._validate_line_number_for_command(line_number, 's')
             self.substitute_lines("{0}/{1}".format(line_number, text))
             return
 
         line_number = self._parse_optional_line_number(arg)
+        self._validate_line_number_for_command(line_number, 's')
         text = self.read_line('Replacement text: ')
         self.substitute_lines("{0}/{1}".format(line_number, text))
 
     def _command_edit(self, command):
         arg = command[1:].strip()
         selected_line_number = self._parse_optional_line_number(arg)
+        self._validate_line_number_for_command(selected_line_number, 'e')
         self.print_context(selected_line_number - 1, 2)
         self.modify_line(selected_line_number)
 
     def _parse_optional_line_number(self, line_text):
         if line_text:
-            return int(line_text)
-        return int(self.read_line("Line number: "))
+            line_number = int(line_text)
+        else:
+            line_number = int(self.read_line("Line number: "))
+        return line_number
+
+    def _validate_line_number(self, line_number, allow_insert_at_end=False):
+        if line_number < 1:
+            raise CommandError('Line number must be >= 1')
+
+        if not self.buffer and not allow_insert_at_end:
+            raise CommandError('Buffer is empty')
+
+        max_line = len(self.buffer) + 1 if allow_insert_at_end else len(self.buffer)
+        if line_number > max_line:
+            raise CommandError('Line number out of range (1-{0})'.format(max_line))
+
+    def _line_range_for(self, allow_insert_at_end=False):
+        if not self.buffer:
+            return 'empty buffer'
+        max_line = len(self.buffer) + 1 if allow_insert_at_end else len(self.buffer)
+        return '1-{0}'.format(max_line)
+
+    def _validate_line_number_for_command(self, line_number, command_name, allow_insert_at_end=False):
+        try:
+            self._validate_line_number(line_number, allow_insert_at_end=allow_insert_at_end)
+        except CommandError as err:
+            message = str(err)
+            if message == 'Line number must be >= 1':
+                raise CommandError(
+                    '{0}: line number must be >= 1 (valid range: {1})'.format(
+                        command_name,
+                        self._line_range_for(allow_insert_at_end=allow_insert_at_end),
+                    )
+                )
+            if message.startswith('Line number out of range') or message == 'Buffer is empty':
+                raise CommandError(
+                    '{0}: line number out of range (valid range: {1})'.format(
+                        command_name,
+                        self._line_range_for(allow_insert_at_end=allow_insert_at_end),
+                    )
+                )
+            raise
 
     def _parse_comment_command(self, command):
         payload = command[1:].strip()
         if not payload:
-            line_num = int(self.read_line("Line number: "))
+            line_num = self._parse_optional_line_number('')
+            self._validate_line_number_for_command(line_num, command[0])
             return line_num - 1, '#'
 
         parts = payload.split(maxsplit=1)
-        line_num = int(parts[0])
+        line_num = self._parse_optional_line_number(parts[0])
+        self._validate_line_number_for_command(line_num, command[0])
         comment_char = parts[1] if len(parts) > 1 and parts[1] else '#'
         return line_num - 1, comment_char
 
@@ -223,6 +275,7 @@ class Editor:
     def _command_insert(self, command):
         arg = command[1:].strip()
         line_number = self._parse_optional_line_number(arg)
+        self._validate_line_number_for_command(line_number, 'i', allow_insert_at_end=True)
         self.insert_line(line_number)
 
     def _command_tail(self, command):
@@ -238,6 +291,7 @@ class Editor:
             parts = payload.split(maxsplit=1)
             line_num = self._parse_optional_line_number(parts[0])
             context_num = int(parts[1]) if len(parts) > 1 and parts[1] else 5
+        self._validate_line_number_for_command(line_num, 'c')
         self.print_context(line_num - 1, context_num)
 
     def _command_newline(self, command):
@@ -350,7 +404,7 @@ class Editor:
             for i, line in enumerate(self.buffer, start=1):
                 print('{i:3d}  {line}'.format(i=i, line=line.rstrip()))
     
-            if self.buffer and self.buffer[-1].endswith('\n') and not self.buffer.__len__() > i-1:
+            if self.buffer and (self.buffer[-1].endswith('\n') or self.buffer[-1].endswith('\r')) and not self.buffer.__len__() > i-1:
                 print('{:3d}'.format(i+1))
 
     def append_lines(self,arg):
@@ -382,7 +436,9 @@ class Editor:
         else:
             try:
                 index = int(arg)
-                if index <= self.buffer.__len__():
+                if index < 1:
+                    print('Index must be >= 1')
+                elif index <= self.buffer.__len__():
                     del self.buffer[index - 1]
                 else:
                     print('Index out of range')
@@ -393,6 +449,9 @@ class Editor:
         try:
             index, text = arg.split('/')
             index = int(index)
+            if index < 1:
+                print('Index must be >= 1')
+                return
             text = self._ensure_line_ending(text)
             self.buffer[index - 1] = text
         except ValueError:
@@ -403,19 +462,23 @@ class Editor:
             index = int(self.read_line('Line number: '))
         else:
             index = int(arg)
+        if index < 1:
+            print('Index must be >= 1')
+            return
         line = self.read_line('New line: ')
         line = self._ensure_line_ending(line)
         self.buffer.insert(index - 1, line)
 
     def add_bom(self):
-        if not self.buffer[0].startswith('\ufeff'):
-            if self.buffer:
+        if self.buffer:
+            if not self.buffer[0].startswith('\ufeff'):
                 self.buffer[0] = '\ufeff' + self.buffer[0]
                 print("BOM added")
             else:
-                self.buffer.append('\ufeff')
+                print("BOM already present")
         else:
-            print("BOM already present")
+            self.buffer.append('\ufeff')
+            print("BOM added")
     def remove_bom(self):
         if self.buffer and self.buffer[0].startswith('\ufeff'):
             self.buffer[0] = self.buffer[0][1:]
@@ -507,7 +570,7 @@ class Editor:
         try:
             with open(self.filename, 'w', newline='') as f:
                 content = ''.join(self.buffer)
-                if self.buffer and not self.buffer[-1].endswith('\n'):
+                if self.buffer and not (self.buffer[-1].endswith('\n') or self.buffer[-1].endswith('\r')):
                     print("Appending newline")
                     content += self._default_line_ending()
                 f.write(content)
