@@ -23,21 +23,34 @@ cd eb
 ./build.sh
 ```
 #### Or manually:
-You'll have to manually install dependencies from ```requirements.txt```:
+Install runtime dependencies from the project metadata and build tooling from `eb/requirements.txt`:
 ```
-pip3 install -r requirements.txt
-make
-sudo make install
+pip3 install -e .
+pip3 install -r eb/requirements.txt
+python3 -m unittest discover -s tests -v
+cd eb
+pyinstaller --onefile eb.py --clean -F --noupx
+sudo install -m 755 dist/eb /usr/local/bin/eb
 ```
+#### Development setup:
+Install editable runtime deps and build/test tooling in one command:
+```
+pip3 install -e . -r requirements-dev.txt
+```
+Or, using the new Makefile target:
+```
+make dev-setup
+```
+
 #### Install as it is:
-Just copies eb.py to /usr/local/bin/eb. You'll have to manually install dependencies from ```requirements.txt```:
+Just copies eb.py to /usr/local/bin/eb:
 ```
-pip3 install -r requirements.txt 
+pip3 install . 
 ./inst.sh
 ```
 ### Usage:
 ```
-eb - a primitive line-ebitor. 'h' is help, 'q' is quit. Python version: 3.12.3
+eb - a primitive line-ebitor. 'h' is help, 'q' is quit. Python version: 3.14.4
 ?h
 Available commands:
 p  - print the buffer with line numbers
@@ -55,6 +68,11 @@ s  - substitute a line in the buffer
 e  - edit a line in the buffer
 k  - comment out a line in the buffer
 u  - Uncomment a line in the buffer
+
+nlf   - convert all line endings in buffer to LF
+ncr   - convert all line endings in buffer to CR
+ncrlf - convert all line endings in buffer to CRLF
+n     - choose line ending interactively (lf/cr/crlf)
 
 b  - add Unicode BOM to the beginning of the file
 B  - remove unicode BOM from the beginning of the file

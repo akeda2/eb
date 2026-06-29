@@ -2,16 +2,22 @@
 import sys
 import os
 from prompt_toolkit import prompt
+from prompt_toolkit.history import InMemoryHistory
 #from prompt_toolkit.key_binding import KeyBindings
 #from curses import wrapper
+
+
+class CommandError(Exception):
+    """Raised when a user command cannot be parsed or executed."""
 
 
 class Editor:
     def __init__(self, filename=None):
         self.buffer = []
         self.filename = filename
+        self.command_history = InMemoryHistory()
         if self.filename is not None and os.path.isfile(self.filename):
-            with open(self.filename) as f:
+            with open(self.filename, newline='') as f:
                 self.buffer = f.readlines()
         else:
             newfile = input("File not found! Create new file? [y/n]: ") or 'n'
@@ -20,10 +26,35 @@ class Editor:
                     self.filename = input("Enter filename (" + self.filename + "): ") or self.filename
                 else:
                     self.filename = input("Enter filename: ")
-                with open(self.filename, 'w') as f:
+                with open(self.filename, 'w', newline='') as f:
                     pass
             else:
                 sys.exit()
+
+    def read_line(self, message=''):
+        return prompt(message)
+
+    def read_command(self, message='?'):
+        return prompt(message, history=self.command_history)
+
+    def _default_line_ending(self):
+        for line in self.buffer:
+            if line.endswith('\r\n'):
+                return '\r\n'
+            if line.endswith('\n'):
+                return '\n'
+            if line.endswith('\r'):
+                return '\r'
+        return '\n'
+
+    def _ensure_line_ending(self, value, line_ending=None):
+        if line_ending is not None:
+            return value.rstrip('\r\n') + line_ending
+
+        if value.endswith('\r\n') or value.endswith('\n') or value.endswith('\r'):
+            return value
+        return value + self._default_line_ending()
+
     def print_help(self):
         print('Available commands:')
         print('p  - print the buffer with line numbers')
@@ -41,6 +72,10 @@ class Editor:
         print('e  - edit a line in the buffer')
         print('k  - comment out a line in the buffer')
         print('u  - Uncomment a line in the buffer\n')
+        print('nlf   - convert all line endings in buffer to LF')
+        print('ncr   - convert all line endings in buffer to CR')
+        print('ncrlf - convert all line endings in buffer to CRLF')
+        print('n     - choose line ending interactively (lf/cr/crlf)\n')
         
         print('b  - add Unicode BOM to the beginning of the file')
         print('B  - remove unicode BOM from the beginning of the file')
@@ -58,87 +93,232 @@ class Editor:
         self.old_version = True if sys.version_info.major == 3 and sys.version_info.minor < 6 or sys.version_info.major > 3 else False
         #self.old_version = True
         while True:
-            command = input('?')
+            command = self.read_command('?')
             try:
-                if command == 'x' or command == 'w':
-                    try:
-                        self.save_buffer()
-                        if command == 'x':
-                            break
-                    except:
-                        print("Save failed!")
-                elif command.startswith('S'):
-                    self.split_from_line_to_new_file(int(command[1:])) if command[1:] != '' else self.split_from_line_to_new_file(int(input("Line number: ")))
-                elif command == 'b':
-                    self.add_bom()
-                elif command == 'B':
-                    self.remove_bom()
-                elif command.startswith('p'):
-                    #print(command[1:]) 
-                    if command[1:] != '' and str.isdigit(command[1:].strip()):
-                        # Use tail instead:
-                        self.print_from(int(command[1:]))
-                    elif command.endswith('r'):
-                        self.print_buffer(raw=True)
-                    elif command.endswith('h'):
-                        self.print_buffer(hex=True)
-                    elif command.endswith('l'):
-                        self.print_buffer(lineNumbers=False)
-                    else:
-                        self.print_buffer()
-                elif command.startswith('a'):
-                    self.append_lines(int(command[1:])) if command[1:] != '' else self.append_lines('x')
-                elif command.startswith('d'):
-                    self.delete_lines(command[1:])
-                elif command.startswith('s'):
-                    self.substitute_lines(command[1:])
-                elif command.startswith('e'):
-                    selected_line_number = int(command[1:]) if command[1:] != '' else input("Line number: ")
-                    self.print_context(int(selected_line_number)-1, int(2))
-                    self.modify_line(int(command[1:])) if command[1:] != '' else self.modify_line(int(selected_line_number))
-                elif command.startswith('k'):
-                    line_num, _, comment_char = command.partition(' ')[2].partition(' ')
-                    if not comment_char:
-                        comment_char = '#'  # Set a default comment character if none is provided
-                    if not line_num:
-                        line_num = input("Line number: ")
-                    self.comment_line(int(line_num)-1, comment_char)
-                    #self.comment_line(int(command[1:]) if command[1:] != '' else int(input("Line number: ")), command[2:] if command[2:] != '' else '#')
-                elif command.startswith('u'):
-                    line_num, _, comment_char = command.partition(' ')[2].partition(' ')
-                    if not comment_char:
-                        comment_char = '#'  # Set a default comment character if none is provided
-                    if not line_num:
-                        line_num = input("Line number: ")
-                    self.uncomment_line(int(line_num)-1, comment_char)
-                elif command.startswith('i'):
-                    self.insert_line(int(command[1:])) if command[1:] != '' else self.insert_line(0)
-                elif command.startswith('m'):
-                    self.print_more()
-                elif command.startswith('t'):
-                    self.print_tail(int(command[1:])) if command[1:] != '' else self.print_tail()
-                elif command.startswith('c'):
-                    line_num, _, context_num = command.partition(' ')[2].partition(' ')
-                    if not context_num:
-                        context_num = 5  # Set a default context number if none is provided
-                    if not line_num:
-                        line_num = input("Line number: ")
-                    self.print_context(int(line_num)-1, int(context_num))
-                    #self.print_context(int(command[1:])) if command[1:] != '' else self.print_context(0)
-                elif command == 'h':
-                    self.print_help()
-                elif command == 'qq':
+                should_exit = self.execute_command(command)
+                if should_exit:
                     break
-                elif command == 'q':
-                    quit_not_save = input("Really quit without saving? (x in main menu eXits and saves) y/n: ") or 'n'
-                    if quit_not_save == 'y':
-                        break
-                else:
-                    print('Unknown command')
-            except:
-                print("FAIL!")
-                #pass
-                raise
+            except (CommandError, ValueError, IndexError) as err:
+                print("FAIL! {0}".format(err))
+            except OSError as err:
+                print("FAIL! I/O error: {0}".format(err))
+
+    def execute_command(self, command):
+        if command in ('x', 'w'):
+            self.save_buffer()
+            return command == 'x'
+
+        simple_dispatch = {
+            'b': self.add_bom,
+            'B': self.remove_bom,
+            'h': self.print_help,
+            'm': self.print_more,
+            'qq': self._quit_now,
+            'q': self._confirm_quit,
+        }
+        if command in simple_dispatch:
+            return simple_dispatch[command]()
+
+        if not command:
+            raise CommandError('Empty command')
+
+        prefix_dispatch = {
+            'S': self._command_split,
+            'p': self._command_print,
+            'a': self._command_append,
+            'd': self._command_delete,
+            's': self._command_substitute,
+            'e': self._command_edit,
+            'k': self._command_comment,
+            'u': self._command_uncomment,
+            'i': self._command_insert,
+            't': self._command_tail,
+            'c': self._command_context,
+            'n': self._command_newline,
+        }
+        handler = prefix_dispatch.get(command[0])
+        if handler is None:
+            print('Unknown command')
+            return False
+
+        handler(command)
+        return False
+
+    def _quit_now(self):
+        return True
+
+    def _confirm_quit(self):
+        quit_not_save = self.read_line("Really quit without saving? (x in main menu eXits and saves) y/n: ") or 'n'
+        return quit_not_save == 'y'
+
+    def _command_split(self, command):
+        line_text = command[1:].strip()
+        line_number = self._parse_optional_line_number(line_text)
+        self._validate_line_number_for_command(line_number, 'S')
+        self.split_from_line_to_new_file(line_number)
+
+    def _command_print(self, command):
+        arg = command[1:]
+        if arg != '' and str.isdigit(arg.strip()):
+            self.print_from(int(arg))
+        elif command.endswith('r'):
+            self.print_buffer(raw=True)
+        elif command.endswith('h'):
+            self.print_buffer(hex=True)
+        elif command.endswith('l'):
+            self.print_buffer(lineNumbers=False)
+        else:
+            self.print_buffer()
+
+    def _command_append(self, command):
+        arg = command[1:].strip()
+        if arg != '':
+            line_number = self._parse_optional_line_number(arg)
+            self._validate_line_number_for_command(line_number, 'a')
+            self.append_lines(line_number)
+            return
+        self.append_lines('x')
+
+    def _command_delete(self, command):
+        arg = command[1:].strip()
+        line_number = self._parse_optional_line_number(arg)
+        self._validate_line_number_for_command(line_number, 'd')
+        self.delete_lines(str(line_number))
+
+    def _command_substitute(self, command):
+        arg = command[1:].strip()
+        if '/' in arg:
+            line_text, text = arg.split('/', 1)
+            line_number = self._parse_optional_line_number(line_text.strip())
+            self._validate_line_number_for_command(line_number, 's')
+            self.substitute_lines("{0}/{1}".format(line_number, text))
+            return
+
+        line_number = self._parse_optional_line_number(arg)
+        self._validate_line_number_for_command(line_number, 's')
+        text = self.read_line('Replacement text: ')
+        self.substitute_lines("{0}/{1}".format(line_number, text))
+
+    def _command_edit(self, command):
+        arg = command[1:].strip()
+        selected_line_number = self._parse_optional_line_number(arg)
+        self._validate_line_number_for_command(selected_line_number, 'e')
+        self.print_context(selected_line_number - 1, 2)
+        self.modify_line(selected_line_number)
+
+    def _parse_optional_line_number(self, line_text):
+        if line_text:
+            line_number = int(line_text)
+        else:
+            line_number = int(self.read_line("Line number: "))
+        return line_number
+
+    def _validate_line_number(self, line_number, allow_insert_at_end=False):
+        if line_number < 1:
+            raise CommandError('Line number must be >= 1')
+
+        if not self.buffer and not allow_insert_at_end:
+            raise CommandError('Buffer is empty')
+
+        max_line = len(self.buffer) + 1 if allow_insert_at_end else len(self.buffer)
+        if line_number > max_line:
+            raise CommandError('Line number out of range (1-{0})'.format(max_line))
+
+    def _line_range_for(self, allow_insert_at_end=False):
+        if not self.buffer:
+            return 'empty buffer'
+        max_line = len(self.buffer) + 1 if allow_insert_at_end else len(self.buffer)
+        return '1-{0}'.format(max_line)
+
+    def _validate_line_number_for_command(self, line_number, command_name, allow_insert_at_end=False):
+        try:
+            self._validate_line_number(line_number, allow_insert_at_end=allow_insert_at_end)
+        except CommandError as err:
+            message = str(err)
+            if message == 'Line number must be >= 1':
+                raise CommandError(
+                    '{0}: line number must be >= 1 (valid range: {1})'.format(
+                        command_name,
+                        self._line_range_for(allow_insert_at_end=allow_insert_at_end),
+                    )
+                )
+            if message.startswith('Line number out of range') or message == 'Buffer is empty':
+                raise CommandError(
+                    '{0}: line number out of range (valid range: {1})'.format(
+                        command_name,
+                        self._line_range_for(allow_insert_at_end=allow_insert_at_end),
+                    )
+                )
+            raise
+
+    def _parse_comment_command(self, command):
+        payload = command[1:].strip()
+        if not payload:
+            line_num = self._parse_optional_line_number('')
+            self._validate_line_number_for_command(line_num, command[0])
+            return line_num - 1, '#'
+
+        parts = payload.split(maxsplit=1)
+        line_num = self._parse_optional_line_number(parts[0])
+        self._validate_line_number_for_command(line_num, command[0])
+        comment_char = parts[1] if len(parts) > 1 and parts[1] else '#'
+        return line_num - 1, comment_char
+
+    def _command_comment(self, command):
+        line_num, comment_char = self._parse_comment_command(command)
+        self.comment_line(line_num, comment_char)
+
+    def _command_uncomment(self, command):
+        line_num, comment_char = self._parse_comment_command(command)
+        self.uncomment_line(line_num, comment_char)
+
+    def _command_insert(self, command):
+        arg = command[1:].strip()
+        line_number = self._parse_optional_line_number(arg)
+        self._validate_line_number_for_command(line_number, 'i', allow_insert_at_end=True)
+        self.insert_line(line_number)
+
+    def _command_tail(self, command):
+        arg = command[1:]
+        self.print_tail(int(arg)) if arg != '' else self.print_tail()
+
+    def _command_context(self, command):
+        payload = command[1:].strip()
+        if not payload:
+            line_num = self._parse_optional_line_number('')
+            context_num = 5
+        else:
+            parts = payload.split(maxsplit=1)
+            line_num = self._parse_optional_line_number(parts[0])
+            context_num = int(parts[1]) if len(parts) > 1 and parts[1] else 5
+        self._validate_line_number_for_command(line_num, 'c')
+        self.print_context(line_num - 1, context_num)
+
+    def _command_newline(self, command):
+        style = command[1:].strip().lower()
+        if not style:
+            style = self.read_line('Line ending (lf/cr/crlf): ').strip().lower()
+
+        line_endings = {
+            'lf': '\n',
+            'cr': '\r',
+            'crlf': '\r\n',
+        }
+        selected = line_endings.get(style)
+        if selected is None:
+            raise CommandError("Invalid line ending. Use one of: lf, cr, crlf")
+
+        self.convert_line_endings(selected)
+        print("Line endings converted to {0}".format(style.upper()))
+
+    def convert_line_endings(self, target_line_ending):
+        updated = []
+        for line in self.buffer:
+            if line.endswith('\r\n') or line.endswith('\n') or line.endswith('\r'):
+                updated.append(line.rstrip('\r\n') + target_line_ending)
+            else:
+                updated.append(line)
+        self.buffer = updated
     
     def print_with_hex_and_letter(self, buffer):
         for line in buffer:
@@ -224,7 +404,7 @@ class Editor:
             for i, line in enumerate(self.buffer, start=1):
                 print('{i:3d}  {line}'.format(i=i, line=line.rstrip()))
     
-            if self.buffer and self.buffer[-1].endswith('\n') and not self.buffer.__len__() > i-1:
+            if self.buffer and (self.buffer[-1].endswith('\n') or self.buffer[-1].endswith('\r')) and not self.buffer.__len__() > i-1:
                 print('{:3d}'.format(i+1))
 
     def append_lines(self,arg):
@@ -233,7 +413,7 @@ class Editor:
         else:
             print(int(len(self.buffer)))
             if arg == 'x' or arg == '':
-                index_in = input('Insert after line: (last) ')
+                index_in = self.read_line('Insert after line: (last) ')
                 if index_in.strip():
                     index = int(index_in)
                 else:
@@ -243,11 +423,10 @@ class Editor:
         print('Enter lines to append. End with a line containing a single dot.')
         new_lines = []
         while True:
-            line = input()
+            line = self.read_line()
             if line == '.':
                 break
-            if not line.endswith('\n'):
-                line += '\n'
+            line = self._ensure_line_ending(line)
             new_lines.append(line)
         self.buffer[index:index] = new_lines
 
@@ -257,7 +436,9 @@ class Editor:
         else:
             try:
                 index = int(arg)
-                if index <= self.buffer.__len__():
+                if index < 1:
+                    print('Index must be >= 1')
+                elif index <= self.buffer.__len__():
                     del self.buffer[index - 1]
                 else:
                     print('Index out of range')
@@ -268,31 +449,36 @@ class Editor:
         try:
             index, text = arg.split('/')
             index = int(index)
-            if not text.endswith('\n'):
-                text += '\n'
+            if index < 1:
+                print('Index must be >= 1')
+                return
+            text = self._ensure_line_ending(text)
             self.buffer[index - 1] = text
         except ValueError:
             print('Invalid argument')
 
     def insert_line(self, arg):
         if arg == '' or arg == 0:
-            index = int(input('Line number: '))
+            index = int(self.read_line('Line number: '))
         else:
             index = int(arg)
-        line = input('New line: ')
-        if not line.endswith('\n'):
-                line += '\n'
+        if index < 1:
+            print('Index must be >= 1')
+            return
+        line = self.read_line('New line: ')
+        line = self._ensure_line_ending(line)
         self.buffer.insert(index - 1, line)
 
     def add_bom(self):
-        if not self.buffer[0].startswith('\ufeff'):
-            if self.buffer:
+        if self.buffer:
+            if not self.buffer[0].startswith('\ufeff'):
                 self.buffer[0] = '\ufeff' + self.buffer[0]
                 print("BOM added")
             else:
-                self.buffer.append('\ufeff')
+                print("BOM already present")
         else:
-            print("BOM already present")
+            self.buffer.append('\ufeff')
+            print("BOM added")
     def remove_bom(self):
         if self.buffer and self.buffer[0].startswith('\ufeff'):
             self.buffer[0] = self.buffer[0][1:]
@@ -315,8 +501,8 @@ class Editor:
                     break
             if end >= len(self.buffer):
                 break
-            prompt = 'More ({end}-{page_size})?'.format(end=end+1, page_size=min(end + page_size, len(self.buffer)))
-            command = input(prompt)
+            prompt_text = 'More ({end}-{page_size})?'.format(end=end+1, page_size=min(end + page_size, len(self.buffer)))
+            command = self.read_line(prompt_text)
             if command == 'q':
                 break
             start = end
@@ -329,7 +515,7 @@ class Editor:
 
     def print_context(self,line_num,plusminus=5):
         if line_num == 0 or line_num == '':
-            line_num = int(input("Line number: "))
+            line_num = int(self.read_line("Line number: "))
         start = max(0, line_num - plusminus)
         end = min(len(self.buffer), line_num + plusminus)
         for i in range(start, end):
@@ -340,11 +526,19 @@ class Editor:
 
     def modify_line(self, line_num):
         line_num -= 1
-        stringtoedit = self.buffer[line_num].strip('\n')
+        original_line = self.buffer[line_num]
+        if original_line.endswith('\r\n'):
+            line_ending = '\r\n'
+        elif original_line.endswith('\n'):
+            line_ending = '\n'
+        elif original_line.endswith('\r'):
+            line_ending = '\r'
+        else:
+            line_ending = self._default_line_ending()
+
+        stringtoedit = original_line.rstrip('\r\n')
         new_line = prompt(f"orig:{stringtoedit}\nnew :", default=stringtoedit)
-        if not new_line.endswith('\n'):
-                new_line += '\n'
-        self.buffer[line_num] = new_line
+        self.buffer[line_num] = self._ensure_line_ending(new_line, line_ending)
 
     def comment_line(self, line_num, comment_char='#'):
         self.buffer[line_num] = comment_char + self.buffer[line_num]
@@ -353,36 +547,36 @@ class Editor:
             self.buffer[line_num] = self.buffer[line_num][1:]
     def split_from_line_to_new_file(self, line_num):
         line_num -= 1
-        new_filename = input("Enter new filename: ")
+        new_filename = self.read_line("Enter new filename: ")
         new_buffer = self.buffer[line_num:]
         self.buffer = self.buffer[:line_num]
         if os.path.isfile(new_filename):
-            overwrite = input("File already exists! Overwrite? (y/N): ") or 'n'
+            overwrite = self.read_line("File already exists! Overwrite? (y/N): ") or 'n'
         else:
             overwrite = 'y'
         if overwrite.lower() == 'y':
             try:
-                with open(new_filename, 'w') as f:
-                    f.write('\n'.join(new_buffer))
+                with open(new_filename, 'w', newline='') as f:
+                    f.write(''.join(new_buffer))
                 print("File saved (original file truncated, but not saved yet)")
-            except:
-                print("Could not save!")
+            except OSError as err:
+                print("Could not save! {0}".format(err))
         else:
             print("File not saved!")
 
     def save_buffer(self):
         if self.filename is None:
-            self.filename = input('Enter filename to save buffer: ')
+            self.filename = self.read_line('Enter filename to save buffer: ')
         try:
-            with open(self.filename, 'w') as f:
+            with open(self.filename, 'w', newline='') as f:
                 content = ''.join(self.buffer)
-                if self.buffer and not self.buffer[-1].endswith('\n'):
+                if self.buffer and not (self.buffer[-1].endswith('\n') or self.buffer[-1].endswith('\r')):
                     print("Appending newline")
-                    content += '\n'
+                    content += self._default_line_ending()
                 f.write(content)
             print("File saved")
-        except:
-            print("Could not save!")
+        except OSError as err:
+            print("Could not save! {0}".format(err))
 
 def main():
     if len(sys.argv) > 1:
