@@ -120,8 +120,8 @@ class Editor:
         return quit_not_save == 'y'
 
     def _command_split(self, command):
-        line_text = command[1:]
-        line_number = int(line_text) if line_text != '' else int(input("Line number: "))
+        line_text = command[1:].strip()
+        line_number = self._parse_optional_line_number(line_text)
         self.split_from_line_to_new_file(line_number)
 
     def _command_print(self, command):
@@ -142,24 +142,43 @@ class Editor:
         self.append_lines(int(arg)) if arg != '' else self.append_lines('x')
 
     def _command_delete(self, command):
-        self.delete_lines(command[1:])
+        arg = command[1:].strip()
+        line_number = self._parse_optional_line_number(arg)
+        self.delete_lines(str(line_number))
 
     def _command_substitute(self, command):
-        self.substitute_lines(command[1:])
+        arg = command[1:].strip()
+        if '/' in arg:
+            line_text, text = arg.split('/', 1)
+            line_number = self._parse_optional_line_number(line_text.strip())
+            self.substitute_lines("{0}/{1}".format(line_number, text))
+            return
+
+        line_number = self._parse_optional_line_number(arg)
+        text = input('Replacement text: ')
+        self.substitute_lines("{0}/{1}".format(line_number, text))
 
     def _command_edit(self, command):
-        arg = command[1:]
-        selected_line_number = int(arg) if arg != '' else input("Line number: ")
-        self.print_context(int(selected_line_number) - 1, int(2))
-        self.modify_line(int(arg)) if arg != '' else self.modify_line(int(selected_line_number))
+        arg = command[1:].strip()
+        selected_line_number = self._parse_optional_line_number(arg)
+        self.print_context(selected_line_number - 1, 2)
+        self.modify_line(selected_line_number)
+
+    def _parse_optional_line_number(self, line_text):
+        if line_text:
+            return int(line_text)
+        return int(input("Line number: "))
 
     def _parse_comment_command(self, command):
-        line_num, _, comment_char = command.partition(' ')[2].partition(' ')
-        if not comment_char:
-            comment_char = '#'
-        if not line_num:
-            line_num = input("Line number: ")
-        return int(line_num) - 1, comment_char
+        payload = command[1:].strip()
+        if not payload:
+            line_num = int(input("Line number: "))
+            return line_num - 1, '#'
+
+        parts = payload.split(maxsplit=1)
+        line_num = int(parts[0])
+        comment_char = parts[1] if len(parts) > 1 and parts[1] else '#'
+        return line_num - 1, comment_char
 
     def _command_comment(self, command):
         line_num, comment_char = self._parse_comment_command(command)
@@ -170,20 +189,24 @@ class Editor:
         self.uncomment_line(line_num, comment_char)
 
     def _command_insert(self, command):
-        arg = command[1:]
-        self.insert_line(int(arg)) if arg != '' else self.insert_line(0)
+        arg = command[1:].strip()
+        line_number = self._parse_optional_line_number(arg)
+        self.insert_line(line_number)
 
     def _command_tail(self, command):
         arg = command[1:]
         self.print_tail(int(arg)) if arg != '' else self.print_tail()
 
     def _command_context(self, command):
-        line_num, _, context_num = command.partition(' ')[2].partition(' ')
-        if not context_num:
+        payload = command[1:].strip()
+        if not payload:
+            line_num = self._parse_optional_line_number('')
             context_num = 5
-        if not line_num:
-            line_num = input("Line number: ")
-        self.print_context(int(line_num) - 1, int(context_num))
+        else:
+            parts = payload.split(maxsplit=1)
+            line_num = self._parse_optional_line_number(parts[0])
+            context_num = int(parts[1]) if len(parts) > 1 and parts[1] else 5
+        self.print_context(line_num - 1, context_num)
     
     def print_with_hex_and_letter(self, buffer):
         for line in buffer:

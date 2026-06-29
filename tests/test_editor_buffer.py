@@ -35,6 +35,54 @@ class EditorBufferTests(unittest.TestCase):
         self.editor.substitute_lines("1/replaced")
         self.assertEqual(self.editor.buffer[0], "replaced\n")
 
+    def test_delete_command_prompts_for_missing_line_number(self):
+        with patch("builtins.input", return_value="2"):
+            self.editor.execute_command("d")
+        self.assertEqual(self.editor.buffer, ["line1\n"])
+
+    def test_delete_command_accepts_inline_line_number(self):
+        self.editor.execute_command("d2")
+        self.assertEqual(self.editor.buffer, ["line1\n"])
+
+    def test_substitute_command_prompts_for_missing_line_number(self):
+        with patch("builtins.input", side_effect=["2", "changed"]):
+            self.editor.execute_command("s")
+        self.assertEqual(self.editor.buffer[1], "changed\n")
+
+    def test_substitute_command_accepts_inline_line_number(self):
+        self.editor.execute_command("s2/changed")
+        self.assertEqual(self.editor.buffer[1], "changed\n")
+
+    def test_insert_command_prompts_for_missing_line_number(self):
+        with patch("builtins.input", side_effect=["2", "inserted"]):
+            self.editor.execute_command("i")
+        self.assertEqual(self.editor.buffer[1], "inserted\n")
+
+    def test_context_command_accepts_inline_line_number(self):
+        with patch.object(self.editor, "print_context") as mock_print_context:
+            self.editor.execute_command("c2")
+        mock_print_context.assert_called_once_with(1, 5)
+
+    def test_context_command_prompts_for_missing_line_number(self):
+        with patch("builtins.input", return_value="2"):
+            with patch.object(self.editor, "print_context") as mock_print_context:
+                self.editor.execute_command("c")
+        mock_print_context.assert_called_once_with(1, 5)
+
+    def test_comment_command_accepts_inline_line_number(self):
+        self.editor.execute_command("k2")
+        self.assertEqual(self.editor.buffer[1], "#line2\n")
+
+    def test_comment_command_prompts_for_missing_line_number(self):
+        with patch("builtins.input", return_value="2"):
+            self.editor.execute_command("k")
+        self.assertEqual(self.editor.buffer[1], "#line2\n")
+
+    def test_uncomment_command_accepts_inline_line_number(self):
+        self.editor.buffer[1] = "#line2\n"
+        self.editor.execute_command("u2")
+        self.assertEqual(self.editor.buffer[1], "line2\n")
+
     def test_comment_and_uncomment(self):
         self.editor.comment_line(0, "#")
         self.assertEqual(self.editor.buffer[0], "#line1\n")
