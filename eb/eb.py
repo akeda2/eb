@@ -6,6 +6,10 @@ from prompt_toolkit import prompt
 #from curses import wrapper
 
 
+class CommandError(Exception):
+    """Raised when a user command cannot be parsed or executed."""
+
+
 class Editor:
     def __init__(self, filename=None):
         self.buffer = []
@@ -60,85 +64,126 @@ class Editor:
         while True:
             command = input('?')
             try:
-                if command == 'x' or command == 'w':
-                    try:
-                        self.save_buffer()
-                        if command == 'x':
-                            break
-                    except:
-                        print("Save failed!")
-                elif command.startswith('S'):
-                    self.split_from_line_to_new_file(int(command[1:])) if command[1:] != '' else self.split_from_line_to_new_file(int(input("Line number: ")))
-                elif command == 'b':
-                    self.add_bom()
-                elif command == 'B':
-                    self.remove_bom()
-                elif command.startswith('p'):
-                    #print(command[1:]) 
-                    if command[1:] != '' and str.isdigit(command[1:].strip()):
-                        # Use tail instead:
-                        self.print_from(int(command[1:]))
-                    elif command.endswith('r'):
-                        self.print_buffer(raw=True)
-                    elif command.endswith('h'):
-                        self.print_buffer(hex=True)
-                    elif command.endswith('l'):
-                        self.print_buffer(lineNumbers=False)
-                    else:
-                        self.print_buffer()
-                elif command.startswith('a'):
-                    self.append_lines(int(command[1:])) if command[1:] != '' else self.append_lines('x')
-                elif command.startswith('d'):
-                    self.delete_lines(command[1:])
-                elif command.startswith('s'):
-                    self.substitute_lines(command[1:])
-                elif command.startswith('e'):
-                    selected_line_number = int(command[1:]) if command[1:] != '' else input("Line number: ")
-                    self.print_context(int(selected_line_number)-1, int(2))
-                    self.modify_line(int(command[1:])) if command[1:] != '' else self.modify_line(int(selected_line_number))
-                elif command.startswith('k'):
-                    line_num, _, comment_char = command.partition(' ')[2].partition(' ')
-                    if not comment_char:
-                        comment_char = '#'  # Set a default comment character if none is provided
-                    if not line_num:
-                        line_num = input("Line number: ")
-                    self.comment_line(int(line_num)-1, comment_char)
-                    #self.comment_line(int(command[1:]) if command[1:] != '' else int(input("Line number: ")), command[2:] if command[2:] != '' else '#')
-                elif command.startswith('u'):
-                    line_num, _, comment_char = command.partition(' ')[2].partition(' ')
-                    if not comment_char:
-                        comment_char = '#'  # Set a default comment character if none is provided
-                    if not line_num:
-                        line_num = input("Line number: ")
-                    self.uncomment_line(int(line_num)-1, comment_char)
-                elif command.startswith('i'):
-                    self.insert_line(int(command[1:])) if command[1:] != '' else self.insert_line(0)
-                elif command.startswith('m'):
-                    self.print_more()
-                elif command.startswith('t'):
-                    self.print_tail(int(command[1:])) if command[1:] != '' else self.print_tail()
-                elif command.startswith('c'):
-                    line_num, _, context_num = command.partition(' ')[2].partition(' ')
-                    if not context_num:
-                        context_num = 5  # Set a default context number if none is provided
-                    if not line_num:
-                        line_num = input("Line number: ")
-                    self.print_context(int(line_num)-1, int(context_num))
-                    #self.print_context(int(command[1:])) if command[1:] != '' else self.print_context(0)
-                elif command == 'h':
-                    self.print_help()
-                elif command == 'qq':
+                should_exit = self.execute_command(command)
+                if should_exit:
                     break
-                elif command == 'q':
-                    quit_not_save = input("Really quit without saving? (x in main menu eXits and saves) y/n: ") or 'n'
-                    if quit_not_save == 'y':
-                        break
-                else:
-                    print('Unknown command')
-            except:
-                print("FAIL!")
-                #pass
-                raise
+            except (CommandError, ValueError, IndexError) as err:
+                print("FAIL! {0}".format(err))
+            except OSError as err:
+                print("FAIL! I/O error: {0}".format(err))
+
+    def execute_command(self, command):
+        if command in ('x', 'w'):
+            self.save_buffer()
+            return command == 'x'
+
+        simple_dispatch = {
+            'b': self.add_bom,
+            'B': self.remove_bom,
+            'h': self.print_help,
+            'm': self.print_more,
+            'qq': self._quit_now,
+            'q': self._confirm_quit,
+        }
+        if command in simple_dispatch:
+            return simple_dispatch[command]()
+
+        if not command:
+            raise CommandError('Empty command')
+
+        prefix_dispatch = {
+            'S': self._command_split,
+            'p': self._command_print,
+            'a': self._command_append,
+            'd': self._command_delete,
+            's': self._command_substitute,
+            'e': self._command_edit,
+            'k': self._command_comment,
+            'u': self._command_uncomment,
+            'i': self._command_insert,
+            't': self._command_tail,
+            'c': self._command_context,
+        }
+        handler = prefix_dispatch.get(command[0])
+        if handler is None:
+            print('Unknown command')
+            return False
+
+        handler(command)
+        return False
+
+    def _quit_now(self):
+        return True
+
+    def _confirm_quit(self):
+        quit_not_save = input("Really quit without saving? (x in main menu eXits and saves) y/n: ") or 'n'
+        return quit_not_save == 'y'
+
+    def _command_split(self, command):
+        line_text = command[1:]
+        line_number = int(line_text) if line_text != '' else int(input("Line number: "))
+        self.split_from_line_to_new_file(line_number)
+
+    def _command_print(self, command):
+        arg = command[1:]
+        if arg != '' and str.isdigit(arg.strip()):
+            self.print_from(int(arg))
+        elif command.endswith('r'):
+            self.print_buffer(raw=True)
+        elif command.endswith('h'):
+            self.print_buffer(hex=True)
+        elif command.endswith('l'):
+            self.print_buffer(lineNumbers=False)
+        else:
+            self.print_buffer()
+
+    def _command_append(self, command):
+        arg = command[1:]
+        self.append_lines(int(arg)) if arg != '' else self.append_lines('x')
+
+    def _command_delete(self, command):
+        self.delete_lines(command[1:])
+
+    def _command_substitute(self, command):
+        self.substitute_lines(command[1:])
+
+    def _command_edit(self, command):
+        arg = command[1:]
+        selected_line_number = int(arg) if arg != '' else input("Line number: ")
+        self.print_context(int(selected_line_number) - 1, int(2))
+        self.modify_line(int(arg)) if arg != '' else self.modify_line(int(selected_line_number))
+
+    def _parse_comment_command(self, command):
+        line_num, _, comment_char = command.partition(' ')[2].partition(' ')
+        if not comment_char:
+            comment_char = '#'
+        if not line_num:
+            line_num = input("Line number: ")
+        return int(line_num) - 1, comment_char
+
+    def _command_comment(self, command):
+        line_num, comment_char = self._parse_comment_command(command)
+        self.comment_line(line_num, comment_char)
+
+    def _command_uncomment(self, command):
+        line_num, comment_char = self._parse_comment_command(command)
+        self.uncomment_line(line_num, comment_char)
+
+    def _command_insert(self, command):
+        arg = command[1:]
+        self.insert_line(int(arg)) if arg != '' else self.insert_line(0)
+
+    def _command_tail(self, command):
+        arg = command[1:]
+        self.print_tail(int(arg)) if arg != '' else self.print_tail()
+
+    def _command_context(self, command):
+        line_num, _, context_num = command.partition(' ')[2].partition(' ')
+        if not context_num:
+            context_num = 5
+        if not line_num:
+            line_num = input("Line number: ")
+        self.print_context(int(line_num) - 1, int(context_num))
     
     def print_with_hex_and_letter(self, buffer):
         for line in buffer:
@@ -365,8 +410,8 @@ class Editor:
                 with open(new_filename, 'w') as f:
                     f.write('\n'.join(new_buffer))
                 print("File saved (original file truncated, but not saved yet)")
-            except:
-                print("Could not save!")
+            except OSError as err:
+                print("Could not save! {0}".format(err))
         else:
             print("File not saved!")
 
@@ -381,8 +426,8 @@ class Editor:
                     content += '\n'
                 f.write(content)
             print("File saved")
-        except:
-            print("Could not save!")
+        except OSError as err:
+            print("Could not save! {0}".format(err))
 
 def main():
     if len(sys.argv) > 1:
