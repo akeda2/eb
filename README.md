@@ -23,16 +23,29 @@ cd eb
 ./build.sh
 ```
 #### Or manually:
-You'll have to manually install dependencies from ```requirements.txt```:
+Install runtime dependencies from the project metadata and build tooling from `eb/requirements.txt`:
 ```
-pip3 install -r requirements.txt
-make
-sudo make install
+pip3 install -e .
+pip3 install -r eb/requirements.txt
+python3 -m unittest discover -s tests -v
+cd eb
+pyinstaller --onefile eb.py --clean -F --noupx
+sudo install -m 755 dist/eb /usr/local/bin/eb
 ```
+#### Development setup:
+Install editable runtime deps and build/test tooling in one command:
+```
+pip3 install -e . -r requirements-dev.txt
+```
+Or, using the new Makefile target:
+```
+make dev-setup
+```
+
 #### Install as it is:
-Just copies eb.py to /usr/local/bin/eb. You'll have to manually install dependencies from ```requirements.txt```:
+Just copies eb.py to /usr/local/bin/eb:
 ```
-pip3 install -r requirements.txt 
+pip3 install . 
 ./inst.sh
 ```
 ### Usage:
