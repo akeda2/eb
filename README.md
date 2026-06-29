@@ -50,7 +50,7 @@ pip3 install .
 ```
 ### Usage:
 ```
-eb - a primitive line-ebitor. 'h' is help, 'q' is quit. Python version: 3.12.3
+eb - a primitive line-ebitor. 'h' is help, 'q' is quit. Python version: 3.14.4
 ?h
 Available commands:
 p  - print the buffer with line numbers
@@ -68,6 +68,11 @@ s  - substitute a line in the buffer
 e  - edit a line in the buffer
 k  - comment out a line in the buffer
 u  - Uncomment a line in the buffer
+
+nlf   - convert all line endings in buffer to LF
+ncr   - convert all line endings in buffer to CR
+ncrlf - convert all line endings in buffer to CRLF
+n     - choose line ending interactively (lf/cr/crlf)
 
 b  - add Unicode BOM to the beginning of the file
 B  - remove unicode BOM from the beginning of the file
