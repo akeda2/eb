@@ -2,6 +2,7 @@
 import sys
 import os
 from prompt_toolkit import prompt
+from prompt_toolkit.history import InMemoryHistory
 #from prompt_toolkit.key_binding import KeyBindings
 #from curses import wrapper
 
@@ -14,6 +15,7 @@ class Editor:
     def __init__(self, filename=None):
         self.buffer = []
         self.filename = filename
+        self.command_history = InMemoryHistory()
         if self.filename is not None and os.path.isfile(self.filename):
             with open(self.filename, newline='') as f:
                 self.buffer = f.readlines()
@@ -31,6 +33,9 @@ class Editor:
 
     def read_line(self, message=''):
         return prompt(message)
+
+    def read_command(self, message='?'):
+        return prompt(message, history=self.command_history)
 
     def _default_line_ending(self):
         for line in self.buffer:
@@ -88,7 +93,7 @@ class Editor:
         self.old_version = True if sys.version_info.major == 3 and sys.version_info.minor < 6 or sys.version_info.major > 3 else False
         #self.old_version = True
         while True:
-            command = input('?')
+            command = self.read_command('?')
             try:
                 should_exit = self.execute_command(command)
                 if should_exit:
