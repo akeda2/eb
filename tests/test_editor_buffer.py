@@ -1,6 +1,8 @@
 import os
 import tempfile
 import unittest
+import io
+from contextlib import redirect_stdout
 from unittest.mock import patch
 
 from eb.eb import Editor, CommandError
@@ -87,6 +89,40 @@ class EditorBufferTests(unittest.TestCase):
         with self.assertRaisesRegex(CommandError, "line number must be >= 1"):
             self.editor.execute_command("s0/changed")
         self.assertEqual(self.editor.buffer, ["line1\n", "line2\n"])
+
+    def test_edit_command_accepts_inline_line_number_with_space(self):
+        with patch.object(self.editor, "read_line", side_effect=AssertionError("read_line should not be called")):
+            with patch.object(self.editor, "print_context") as mock_print_context:
+                with patch.object(self.editor, "modify_line") as mock_modify_line:
+                    self.editor.execute_command("e 1")
+
+        mock_print_context.assert_called_once_with(0, 2)
+        mock_modify_line.assert_called_once_with(1)
+
+    def test_edit_command_accepts_inline_line_number_without_space(self):
+        with patch.object(self.editor, "read_line", side_effect=AssertionError("read_line should not be called")):
+            with patch.object(self.editor, "print_context") as mock_print_context:
+                with patch.object(self.editor, "modify_line") as mock_modify_line:
+                    self.editor.execute_command("e1")
+
+        mock_print_context.assert_called_once_with(0, 2)
+        mock_modify_line.assert_called_once_with(1)
+
+    def test_edit_line_1_does_not_prompt_for_line_number(self):
+        with patch.object(self.editor, "read_line", side_effect=AssertionError("read_line should not be called")):
+            with patch("eb.eb.prompt", return_value="line1-edited"):
+                self.editor.execute_command("e 1")
+
+        self.assertEqual(self.editor.buffer[0], "line1-edited\n")
+
+    def test_edit_can_be_cancelled(self):
+        with patch("eb.eb.prompt", side_effect=KeyboardInterrupt):
+            output = io.StringIO()
+            with redirect_stdout(output):
+                self.editor.execute_command("e1")
+
+        self.assertIn("Edit cancelled", output.getvalue())
+        self.assertEqual(self.editor.buffer[0], "line1\n")
 
     def test_substitute_command_rejects_out_of_range(self):
         with self.assertRaisesRegex(CommandError, "out of range"):

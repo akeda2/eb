@@ -200,11 +200,13 @@ class Editor:
         self.substitute_lines("{0}/{1}".format(line_number, text))
 
     def _command_edit(self, command):
-        arg = command[1:].strip()
-        selected_line_number = self._parse_optional_line_number(arg)
+        payload = command[1:].strip()
+        line_text = payload.split(maxsplit=1)[0] if payload else ''
+        selected_line_number = self._parse_optional_line_number(line_text)
         self._validate_line_number_for_command(selected_line_number, 'e')
         self.print_context(selected_line_number - 1, 2)
-        self.modify_line(selected_line_number)
+        if not self.modify_line(selected_line_number):
+            print('Edit cancelled')
 
     def _parse_optional_line_number(self, line_text):
         if line_text:
@@ -514,7 +516,7 @@ class Editor:
             print('{i:3d}  {buffer}'.format(i=i+1, buffer=self.buffer[i]).rstrip())
 
     def print_context(self,line_num,plusminus=5):
-        if line_num == 0 or line_num == '':
+        if line_num is None or line_num == '':
             line_num = int(self.read_line("Line number: "))
         start = max(0, line_num - plusminus)
         end = min(len(self.buffer), line_num + plusminus)
@@ -537,8 +539,12 @@ class Editor:
             line_ending = self._default_line_ending()
 
         stringtoedit = original_line.rstrip('\r\n')
-        new_line = prompt(f"orig:{stringtoedit}\nnew :", default=stringtoedit)
+        try:
+            new_line = prompt(f"orig:{stringtoedit}\nnew :", default=stringtoedit)
+        except (KeyboardInterrupt, EOFError):
+            return False
         self.buffer[line_num] = self._ensure_line_ending(new_line, line_ending)
+        return True
 
     def comment_line(self, line_num, comment_char='#'):
         self.buffer[line_num] = comment_char + self.buffer[line_num]
