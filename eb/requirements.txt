@@ -1,4 +1,4 @@
 pyinstaller==6.10.0
 pyinstaller-hooks-contrib==2024.8
 build==1.2.2
-wheel==0.45.1
+wheel==0.46.2
