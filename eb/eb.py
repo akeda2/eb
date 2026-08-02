@@ -428,8 +428,10 @@ class Editor:
             line = self.read_line()
             if line == '.':
                 break
-            line = self._ensure_line_ending(line)
-            new_lines.append(line)
+            # prompt_toolkit can return pasted multi-line chunks in one read.
+            # Keep each logical line as its own buffer entry.
+            normalized_line = self._ensure_line_ending(line)
+            new_lines.extend(normalized_line.splitlines(keepends=True))
         self.buffer[index:index] = new_lines
 
     def delete_lines(self, arg):
