@@ -30,6 +30,13 @@ class EditorBufferTests(unittest.TestCase):
         self.assertEqual(self.editor.buffer[2], "new1\n")
         self.assertEqual(self.editor.buffer[3], "new2\n")
 
+    def test_append_lines_splits_pasted_multiline_input(self):
+        with patch.object(self.editor, "read_line", side_effect=["new1\nnew2", "."]):
+            self.editor.append_lines(2)
+
+        self.assertEqual(self.editor.buffer[2], "new1\n")
+        self.assertEqual(self.editor.buffer[3], "new2\n")
+
     def test_delete_and_substitute(self):
         self.editor.delete_lines("2")
         self.assertEqual(self.editor.buffer, ["line1\n"])
