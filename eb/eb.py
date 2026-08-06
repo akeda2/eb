@@ -16,9 +16,33 @@ class Editor:
         self.buffer = []
         self.filename = filename
         self.command_history = InMemoryHistory()
+        self.is_binary_file = False
+        self.file_encoding = 'utf-8'
         if self.filename is not None and os.path.isfile(self.filename):
-            with open(self.filename, newline='') as f:
-                self.buffer = f.readlines()
+            with open(self.filename, 'rb') as f:
+                raw_content = f.read()
+
+            if b'\x00' in raw_content:
+                self.is_binary_file = True
+                self.buffer = raw_content.decode('latin-1').splitlines(keepends=True)
+            else:
+                try:
+                    decoded_content = raw_content.decode('utf-8')
+                    utf8_ok = True
+                except UnicodeDecodeError:
+                    utf8_ok = False
+
+            if not self.is_binary_file and utf8_ok:
+                self.is_binary_file = False
+                self.file_encoding = 'utf-8'
+                self.buffer = decoded_content.splitlines(keepends=True)
+            elif not self.is_binary_file and self._looks_like_binary(raw_content):
+                self.is_binary_file = True
+                self.buffer = raw_content.decode('latin-1').splitlines(keepends=True)
+            elif not self.is_binary_file:
+                self.is_binary_file = False
+                self.file_encoding = 'latin-1'
+                self.buffer = raw_content.decode('latin-1').splitlines(keepends=True)
         else:
             newfile = input("File not found! Create new file? [y/n]: ") or 'n'
             if newfile == 'y':
@@ -30,6 +54,21 @@ class Editor:
                     pass
             else:
                 sys.exit()
+
+    def _looks_like_binary(self, raw_content):
+        if not raw_content:
+            return False
+        text_whitespace = b'\n\r\t\b\f'
+        printable_ascii = set(range(0x20, 0x7F))
+        non_text = 0
+        for byte in raw_content:
+            if byte in text_whitespace or byte in printable_ascii:
+                continue
+            if byte >= 0x80:
+                continue
+            non_text += 1
+
+        return (non_text / len(raw_content)) > 0.30
 
     def read_line(self, message=''):
         return prompt(message)
@@ -58,6 +97,7 @@ class Editor:
     def print_help(self):
         print('Available commands:')
         print('p  - print the buffer with line numbers')
+        print('pm - print the buffer with hex values one page at a time')
         print('pr - print the buffer with line endings visible (raw)')
         print('ph - print the buffer like pr but with hex values')
         print('pl - print the buffer without line numbers')
@@ -93,13 +133,19 @@ class Editor:
         self.old_version = True if sys.version_info.major == 3 and sys.version_info.minor < 6 or sys.version_info.major > 3 else False
         #self.old_version = True
         while True:
-            command = self.read_command('?')
+            try:
+                command = self.read_command('?')
+            except (KeyboardInterrupt, EOFError):
+                print("Input cancelled")
+                continue
             try:
                 should_exit = self.execute_command(command)
                 if should_exit:
                     break
             except (CommandError, ValueError, IndexError) as err:
                 print("FAIL! {0}".format(err))
+            except (KeyboardInterrupt, EOFError):
+                print("Command cancelled")
             except OSError as err:
                 print("FAIL! I/O error: {0}".format(err))
 
@@ -161,6 +207,10 @@ class Editor:
         arg = command[1:]
         if arg != '' and str.isdigit(arg.strip()):
             self.print_from(int(arg))
+        elif command == 'p' and self.is_binary_file:
+            self.print_more_hex()
+        elif command == 'pm':
+            self.print_more_hex()
         elif command.endswith('r'):
             self.print_buffer(raw=True)
         elif command.endswith('h'):
@@ -334,18 +384,23 @@ class Editor:
             print()  # Optional: Separate blocks with an empty line
 
     def format_hex_with_letter(self,data, bytes_per_line=16):
+        if isinstance(data, str):
+            byte_data = data.encode('latin-1') if self.is_binary_file else data.encode()
+        else:
+            byte_data = data
+
         hex_lines = []
         char_lines = []
-        while data:
-            chunk = data[:bytes_per_line]
-            data = data[bytes_per_line:]
+        while byte_data:
+            chunk = byte_data[:bytes_per_line]
+            byte_data = byte_data[bytes_per_line:]
 
-            hex_chunk = ' '.join(['{:02x}'.format(b) for b in chunk.encode()])
+            hex_chunk = ' '.join(['{:02x}'.format(b) for b in chunk])
             hex_lines.append(hex_chunk)
 
             # Convert to a printable string, replacing non-printable chars with '.'
             char_chunk = ''
-            for b in chunk.encode():
+            for b in chunk:
                 char = chr(b)
                 if char == '\n':
                     char_chunk += '\\n'.ljust(3)
@@ -377,13 +432,18 @@ class Editor:
             print()  # Optional: Separate blocks with an empty line
 
     def format_hex(self,data, bytes_per_line=16):
+        if isinstance(data, str):
+            byte_data = data.encode('latin-1') if self.is_binary_file else data.encode('utf-8')
+        else:
+            byte_data = data
+
         hex_lines = []
-        while data:
-            chunk = data[:bytes_per_line]
-            data = data[bytes_per_line:]
+        while byte_data:
+            chunk = byte_data[:bytes_per_line]
+            byte_data = byte_data[bytes_per_line:]
 
             # Convert to hex, with spaces in between for each byte
-            hex_chunk = ' '.join(['{:02x}'.format(b) for b in chunk.encode('latin-1')])
+            hex_chunk = ' '.join(['{:02x}'.format(b) for b in chunk])
             hex_lines.append(hex_chunk)
 
         return hex_lines
@@ -422,16 +482,22 @@ class Editor:
                     index = len(self.buffer)
             else:
                 index = arg
+        if self.buffer and index > 0:
+            self.print_context(index - 1, 2)
         print('Enter lines to append. End with a line containing a single dot.')
         new_lines = []
-        while True:
-            line = self.read_line()
-            if line == '.':
-                break
-            # prompt_toolkit can return pasted multi-line chunks in one read.
-            # Keep each logical line as its own buffer entry.
-            normalized_line = self._ensure_line_ending(line)
-            new_lines.extend(normalized_line.splitlines(keepends=True))
+        try:
+            while True:
+                line = self.read_line('new :')
+                if line == '.':
+                    break
+                # prompt_toolkit can return pasted multi-line chunks in one read.
+                # Keep each logical line as its own buffer entry.
+                normalized_line = self._ensure_line_ending(line)
+                new_lines.extend(normalized_line.splitlines(keepends=True))
+        except (KeyboardInterrupt, EOFError):
+            print('Append cancelled')
+            return
         self.buffer[index:index] = new_lines
 
     def delete_lines(self, arg):
@@ -469,7 +535,14 @@ class Editor:
         if index < 1:
             print('Index must be >= 1')
             return
-        line = self.read_line('New line: ')
+        if self.buffer:
+            context_line = min(index - 1, len(self.buffer) - 1)
+            self.print_context(context_line, 2)
+        try:
+            line = self.read_line('new :')
+        except (KeyboardInterrupt, EOFError):
+            print('Insert cancelled')
+            return
         line = self._ensure_line_ending(line)
         self.buffer.insert(index - 1, line)
 
@@ -511,6 +584,20 @@ class Editor:
                 break
             start = end
             end = start + page_size
+
+    def print_more_hex(self):
+        page_size = 20
+        start = 0
+        while start < len(self.buffer):
+            end = min(start + page_size, len(self.buffer))
+            self.print_with_hex_and_letter(self.buffer[start:end])
+            if end >= len(self.buffer):
+                break
+            prompt_text = 'More ({start}-{end})?'.format(start=end + 1, end=min(end + page_size, len(self.buffer)))
+            command = self.read_line(prompt_text)
+            if command == 'q':
+                break
+            start = end
 
     def print_tail(self,n=10):
         start = max(0, len(self.buffer) - n)
@@ -564,8 +651,12 @@ class Editor:
             overwrite = 'y'
         if overwrite.lower() == 'y':
             try:
-                with open(new_filename, 'w', newline='') as f:
-                    f.write(''.join(new_buffer))
+                if self.is_binary_file:
+                    with open(new_filename, 'wb') as f:
+                        f.write(''.join(new_buffer).encode('latin-1'))
+                else:
+                    with open(new_filename, 'w', newline='', encoding=self.file_encoding) as f:
+                        f.write(''.join(new_buffer))
                 print("File saved (original file truncated, but not saved yet)")
             except OSError as err:
                 print("Could not save! {0}".format(err))
@@ -576,12 +667,16 @@ class Editor:
         if self.filename is None:
             self.filename = self.read_line('Enter filename to save buffer: ')
         try:
-            with open(self.filename, 'w', newline='') as f:
-                content = ''.join(self.buffer)
-                if self.buffer and not (self.buffer[-1].endswith('\n') or self.buffer[-1].endswith('\r')):
-                    print("Appending newline")
-                    content += self._default_line_ending()
-                f.write(content)
+            if self.is_binary_file:
+                with open(self.filename, 'wb') as f:
+                    f.write(''.join(self.buffer).encode('latin-1'))
+            else:
+                with open(self.filename, 'w', newline='', encoding=self.file_encoding) as f:
+                    content = ''.join(self.buffer)
+                    if self.buffer and not (self.buffer[-1].endswith('\n') or self.buffer[-1].endswith('\r')):
+                        print("Appending newline")
+                        content += self._default_line_ending()
+                    f.write(content)
             print("File saved")
         except OSError as err:
             print("Could not save! {0}".format(err))

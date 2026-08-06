@@ -24,11 +24,55 @@ class EditorBufferTests(unittest.TestCase):
             self.editor.insert_line(2)
         self.assertEqual(self.editor.buffer[1], "inserted\n")
 
+    def test_insert_line_prints_context_near_selected_line(self):
+        with patch.object(self.editor, "print_context") as mock_print_context:
+            with patch.object(self.editor, "read_line", return_value="inserted"):
+                self.editor.insert_line(2)
+
+        mock_print_context.assert_called_once_with(1, 2)
+
+    def test_insert_line_uses_aligned_prompt(self):
+        with patch.object(self.editor, "read_line", return_value="inserted") as mock_read_line:
+            self.editor.insert_line(2)
+
+        self.assertEqual(mock_read_line.call_args_list[-1].args[0], "new :")
+
+    def test_append_can_be_cancelled(self):
+        output = io.StringIO()
+        with patch.object(self.editor, "read_line", side_effect=KeyboardInterrupt):
+            with redirect_stdout(output):
+                self.editor.append_lines(2)
+
+        self.assertIn("Append cancelled", output.getvalue())
+        self.assertEqual(self.editor.buffer, ["line1\n", "line2\n"])
+
+    def test_insert_can_be_cancelled(self):
+        output = io.StringIO()
+        with patch.object(self.editor, "read_line", side_effect=KeyboardInterrupt):
+            with redirect_stdout(output):
+                self.editor.insert_line(2)
+
+        self.assertIn("Insert cancelled", output.getvalue())
+        self.assertEqual(self.editor.buffer, ["line1\n", "line2\n"])
+
     def test_append_lines_after_selected_index(self):
         with patch.object(self.editor, "read_line", side_effect=["new1", "new2", "."]):
             self.editor.append_lines(2)
         self.assertEqual(self.editor.buffer[2], "new1\n")
         self.assertEqual(self.editor.buffer[3], "new2\n")
+
+    def test_append_lines_prints_context_near_selected_line(self):
+        with patch.object(self.editor, "print_context") as mock_print_context:
+            with patch.object(self.editor, "read_line", side_effect=["new1", "."]):
+                self.editor.append_lines(2)
+
+        mock_print_context.assert_called_once_with(1, 2)
+
+    def test_append_lines_uses_aligned_prompt(self):
+        with patch.object(self.editor, "read_line", side_effect=["new1", "."]) as mock_read_line:
+            self.editor.append_lines(2)
+
+        self.assertEqual(mock_read_line.call_args_list[0].args[0], "new :")
 
     def test_append_lines_splits_pasted_multiline_input(self):
         with patch.object(self.editor, "read_line", side_effect=["new1\nnew2", "."]):
@@ -322,6 +366,71 @@ class EditorBufferTests(unittest.TestCase):
     def test_append_command_rejects_out_of_range(self):
         with self.assertRaisesRegex(CommandError, "out of range"):
             self.editor.execute_command("a3")
+
+    def test_binary_file_with_nul_loads_without_crash(self):
+        binary_file = os.path.join(self.temp_dir.name, "binary-nul.bin")
+        with open(binary_file, "wb") as f:
+            f.write(b"a\x00b\n")
+
+        editor = Editor(binary_file)
+        self.assertTrue(editor.is_binary_file)
+        self.assertEqual(editor.buffer, ["a\x00b\n"])
+
+    def test_legacy_non_utf8_text_loads_in_text_mode(self):
+        legacy_file = os.path.join(self.temp_dir.name, "legacy-latin1.txt")
+        with open(legacy_file, "wb") as f:
+            f.write(b"\xff\xfe\n")
+
+        editor = Editor(legacy_file)
+        self.assertFalse(editor.is_binary_file)
+        self.assertEqual(editor.file_encoding, "latin-1")
+        self.assertEqual(editor.buffer, ["\xff\xfe\n"])
+
+    def test_legacy_non_utf8_text_save_preserves_bytes(self):
+        legacy_file = os.path.join(self.temp_dir.name, "legacy-save-latin1.txt")
+        original = b"\xff\xfe\n"
+        with open(legacy_file, "wb") as f:
+            f.write(original)
+
+        editor = Editor(legacy_file)
+        editor.save_buffer()
+
+        with open(legacy_file, "rb") as f:
+            content = f.read()
+
+        self.assertEqual(content, original)
+
+    def test_binary_file_with_control_bytes_loads_without_crash(self):
+        binary_file = os.path.join(self.temp_dir.name, "binary-control.bin")
+        with open(binary_file, "wb") as f:
+            f.write(b"\x01\x02\x03\x04\xff")
+
+        editor = Editor(binary_file)
+        self.assertTrue(editor.is_binary_file)
+        self.assertEqual(editor.buffer, ["\x01\x02\x03\x04\xff"])
+
+    def test_print_command_aliases_to_hex_for_binary_files(self):
+        binary_file = os.path.join(self.temp_dir.name, "binary-print.bin")
+        with open(binary_file, "wb") as f:
+            f.write(b"\x00A\n")
+
+        editor = Editor(binary_file)
+        with patch.object(editor, "print_more_hex") as mock_print_more_hex:
+            editor.execute_command("p")
+
+        mock_print_more_hex.assert_called_once_with()
+
+    def test_print_command_stays_normal_for_text_files(self):
+        with patch.object(self.editor, "print_buffer") as mock_print_buffer:
+            self.editor.execute_command("p")
+
+        mock_print_buffer.assert_called_once_with()
+
+    def test_print_pm_command_uses_paged_hex_output(self):
+        with patch.object(self.editor, "print_more_hex") as mock_print_more_hex:
+            self.editor.execute_command("pm")
+
+        mock_print_more_hex.assert_called_once_with()
 
 
 if __name__ == "__main__":
